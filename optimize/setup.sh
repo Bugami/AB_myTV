@@ -6,7 +6,13 @@ set -euo pipefail
 cd "$(dirname "$0")"
 . ./python.sh
 pick_python || exit 1
-"${SYS_PY[@]}" -m venv venv
+if [ -n "${TERMUX_VERSION:-}" ]; then
+  # Termux on an Android phone: pip can't build cryptography or pillow there, so they come from Termux's own
+  # packages (pkg install python-cryptography python-pillow) and the venv is allowed to see them
+  "${SYS_PY[@]}" -m venv --system-site-packages venv
+else
+  "${SYS_PY[@]}" -m venv venv
+fi
 if [ ! -e venv/bin/python ] && [ -e venv/Scripts/python.exe ]; then
   # Windows puts it in venv\Scripts: every script calls optimize/venv/bin/python, so point that there
   mkdir -p venv/bin

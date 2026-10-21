@@ -4,7 +4,11 @@
 # `python`/`python3` can be the Microsoft Store shortcut that does nothing, and right after
 # `winget install Python.Python.3.12` the terminal's PATH doesn't have the new Python yet, so its install
 # folders are tried too, and the `py` launcher last.
-py_ok() { "$@" -c "import sys; sys.exit(not ((3, 10) <= sys.version_info[:2] < (3, 14)))" >/dev/null 2>&1; }
+py_ok() {
+  # Termux brings cryptography and pillow as its own packages (no wheels to build), so any Python 3.10+ does there
+  if [ -n "${TERMUX_VERSION:-}" ]; then "$@" -c "import sys; sys.exit(not (3, 10) <= sys.version_info[:2])" >/dev/null 2>&1; return; fi
+  "$@" -c "import sys; sys.exit(not ((3, 10) <= sys.version_info[:2] < (3, 14)))" >/dev/null 2>&1
+}
 pick_python() {
   local c la v bad=
   local -a cands=(python3.13 python3.12 /opt/homebrew/bin/python3 /usr/local/bin/python3 python3 python)
