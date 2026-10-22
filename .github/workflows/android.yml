@@ -27,16 +27,24 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # the signing key lives only in the repository's secrets (made once with .github/tools/make_signing_key.py)
+      # the signing key (made once with .github/tools/make_signing_key.py): from the ANDROID_KEYSTORE_B64 secret, or
+      # else the password-encrypted copy in .github/signing/release.p12. Either way the password is only in the
+      # ANDROID_KEYSTORE_PASSWORD secret, so the file alone can't sign anything.
       - name: Signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD must both be in the repository's secrets"; exit 1
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD must be in the repository's secrets"; exit 1
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          elif [ -f .github/signing/release.p12 ]; then
+            cp .github/signing/release.p12 "$RUNNER_TEMP/release.p12"
+          else
+            echo "::error::No signing key: add the ANDROID_KEYSTORE_B64 secret or .github/signing/release.p12"; exit 1
+          fi
           echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
       - name: Build APKs
