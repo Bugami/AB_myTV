@@ -194,6 +194,10 @@
   .p-mid .big{display:block;text-align:center;line-height:1.06}
   .p-mid .num{font-size:1.3em;line-height:1}
   .p-mid .unit{font-size:.46em;font-weight:500;color:#D6AF6B;letter-spacing:.02em;display:inline;vertical-align:.5em}
+  .p-mid .big.dhikr{white-space:normal;font-family:'Thmanyah',serif;font-weight:500;line-height:1.55;
+    font-size:clamp(15px,1.3vw,27px);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    padding-bottom:.2em}
+  .p-mid .big.dhikr .num{font-size:1em;font-weight:500;color:var(--sand)}
   .p-match{text-align:left}
   .p-match .big{justify-content:flex-end}
   .p-match .sub{white-space:normal;line-height:1.4;max-width:100%;font-size:clamp(11px,.88vw,17px)}
@@ -301,9 +305,9 @@
     </div>
 
     <div class="panel p-mid">
-      <div class="label" id="ramadan-label">رمضان ١٤٤٨</div>
+      <div class="label" id="ramadan-label">ذكر</div>
       <div class="big"><span class="num" id="ramadan-days">—</span></div>
-      <div class="sub" id="ramadan-sub">—</div>
+      <div class="sub" id="ramadan-sub"></div>
     </div>
 
     <div class="panel p-match">
@@ -589,6 +593,7 @@ function tickRamadan(){
     else if(mins < maghribM){ label = 'الإفطار'; targetM = maghribM; }
     else { label = 'الإمساك'; targetM = fajrM + 1440; }
     const th = Math.floor((targetM % 1440) / 60), tm = targetM % 60;
+    elD.parentNode.classList.remove('dhikr'); delete elD.dataset.k;
     elL.textContent = label;
     elD.innerHTML = ar(th%12===0?12:th%12) + ':' + ar(String(tm).padStart(2,'0'))
                   + ' <span class="unit">' + (th < 12 ? 'ص' : 'م') + '</span>';
@@ -596,19 +601,18 @@ function tickRamadan(){
     return;
   }
 
-  // ---- countdown mode ----
-  const st = ramadanStart();
-  elL.textContent = 'رمضان ' + ar(st ? st.hy : hijriYearNow());
-  if(!st){ elD.textContent='—'; elS.textContent=''; return; }
-  const rp2 = riyadhParts();
-  const days = Math.max(0, Math.round(
-    (Date.UTC(st.y, st.mo-1, st.d) - Date.UTC(rp2.y, rp2.mo-1, rp2.d)) / 86400000));
-  elD.innerHTML = ar(days) + ' <span class="unit">يوم</span>';
-  elS.textContent = days === 0 ? 'رمضان مبارك'
-    : 'يبدأ ' + new Intl.DateTimeFormat(GREG,{timeZone:CONFIG.timezone,weekday:'long',day:'numeric',month:'long'})
-        .format(new Date(Date.UTC(st.y, st.mo-1, st.d, 12)));
+  // ---- outside Ramadan: a short dhikr, a new one every 10 minutes (assets/shared/dhikr.json) ----
+  elD.parentNode.classList.add('dhikr');
+  if(!DHIKR.length){ elL.textContent = ''; elD.textContent = ''; elS.textContent = ''; return; }
+  const k = Math.floor(Date.now() / 600000) % DHIKR.length;
+  if(elD.dataset.k === String(k)) return;
+  elD.dataset.k = String(k);
+  elL.textContent = 'ذكر';
+  elD.textContent = DHIKR[k].text;
+  elS.textContent = DHIKR[k].source;
 }
 
+const DHIKR = __DHIKR__;   // assets/shared/dhikr.json, cut from al-Bukhari and Muslim by .github/tools/make_dhikr.py
 const TEAM_AR = __TEAMS_AR__;   // assets/shared/teams-ar.json
 // match "Al-Adalah", "Al Adalah", "Al-Adalah FC" and "AL ADALAH" to the same entry, and "Atlético" to "Atletico"
 // (the same key as team_key() in .github/tools/team_ids.py and Arabic.key(); tests/team_ids_test.py compares them)

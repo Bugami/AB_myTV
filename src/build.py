@@ -205,6 +205,52 @@ def hadith_for_screen():
     return out
 
 
+HOME_MAX_WORDS = 18   # a card on the home screen holds three lines
+SAID = re.compile("ﷺ" + "\\s*(?:" + HARAKAT.join("قال") + HARAKAT + "|" + HARAKAT.join("يقول") + HARAKAT + ")?\\s*[:،,]?\\s*$")
+
+
+# Left off the home screen's row, which shows each saying alone: ones that need their story or the rest of the
+# hadith, speak to one person or one moment, or are rulings better read with an explanation. Matched without harakat.
+HOME_SKIP = (
+    "انصر أخاك", "حق المسلم على المسلم خمس", "إن من الشجر شجرة", "بين كل أذانين", "اللهم لا عيش", "اللهم اجعل رزق",
+    "اللهم اجعل بالمدينة", "إن الإيمان ليأرز", "بادروا بالأعمال", "لتؤدن الحقوق", "لو تعلمون ما أعلم",
+    "إذا قال الرجل لأخيه", "الشهداء خمسة", "الطاعون شهادة", "إذا سمعتم بالطاعون", "في الحبة السوداء",
+    "من تصبح كل يوم", "العين حق", "من صلى الصبح", "إن أبغض الرجال", "إن الله ليملي", "لا عدوى", "البيعان بالخيار",
+    "مطل الغني", "اقرءوا القرآن ما ائتلفت", "أنفقي ولا تحصي", "لا يقولن أحدكم عبدي", "ما حق امرئ مسلم",
+    "لا تمنعوا إماء الله", "يا نساء المسلمات", "من عال جاريتين", "تنكح المرأة", "لو دعيت إلى ذراع",
+    "هل تنصرون", "ما أحد أصبر", "لا يمشي أحدكم في نعل", "إذا انتعل أحدكم", "الحلف منفقة", "من حلف على يمين",
+    "من كان حالفا", "لا يقولن أحدكم اللهم اغفر", "إذا دعي أحدكم إلى الوليمة", "السفر قطعة", "سباب المسلم",
+    "ليس منا من لم يتغن", "تعاهدوا القرآن", "إن الله تجاوز", "يتبع الميت", "من أخذ أموال الناس", "لا يحتكر",
+    "بين الرجل وبين الشرك", "إن الله حرم عليكم", "إنك لن تنفق", "على أنقاب المدينة", "قل اللهم اهدني",
+    "إن الله قال إذا ابتليت", "يقول الله تعالى ما لعبدي", "يهرم ابن آدم", "والذي نفسي بيده لو لم تذنبوا",
+    "من نسي وهو صائم", "رب أشعث", "لا تسبوا الأموات", "إن اللعانين", "يبعث كل عبد", "قال الله تبارك وتعالى أنا أغنى",
+    "من يضمن لي", "من يرد الله به خيرا", "طعام الاثنين", "رحم الله رجلا سمحا", "إذا صلى أحدكم للناس",
+    "إذا قلت لصاحبك", "الدنيا سجن",
+)
+
+
+def hadith_for_home():
+    """The home screen's row: only al-Bukhari and Muslim, only the Prophet's own words, and only where the
+    narration before them is just «قال النبي ﷺ» (no story the words would need), short enough for a card."""
+    out, seen = [], set()
+    for h in hadith_for_screen():
+        if not h["source"].startswith(("صحيح البخاري", "صحيح مسلم")):
+            continue
+        quotes = [t for k, t in h["parts"] if k == "q"]
+        narr = [t for k, t in h["parts"] if k == "n"]
+        if len(quotes) != 1 or len(narr) != 1 or h["parts"][-1][0] != "q":
+            continue
+        if not SAID.search(narr[0]) or len(narr[0].split()) > 14:
+            continue
+        text = " ".join(quotes[0].split()).strip(" ،,.")
+        key = plain(text)
+        if len(text.split()) > HOME_MAX_WORDS or key in seen or key.startswith(HOME_SKIP):
+            continue
+        seen.add(key)
+        out.append({"t": text, "s": h["source"]})
+    return out
+
+
 def data_uri(path, mime):
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
@@ -226,6 +272,7 @@ def main():
     html = html.replace("__TEAMS_BY_ID__", js_json(by_id))
     html = html.replace("__VERSES__", js_json(verses_for_screen()))
     html = html.replace("__HADITH__", js_json(hadith_for_screen()))   # checked by CI
+    html = html.replace("__DHIKR__", (ROOT / "assets/shared/dhikr.json").read_text(encoding="utf-8").strip().replace("</", "<\\/"))
 
     bg_dir = ROOT / "assets/backgrounds"
     bgs = json.loads((bg_dir / "backgrounds.json").read_text(encoding="utf-8"))
@@ -242,6 +289,17 @@ def main():
         out.parent.mkdir(exist_ok=True)
         out.write_text(page.replace("__BG_SET__", ",\n".join(entries)), encoding="utf-8")
         print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size / 1e6:.1f} MB)")
+
+    # the home screen's page (sa.urtv.home): fonts from the APK like tv.html, prayer times computed in the page
+    home = (ROOT / "src/home.html").read_text(encoding="utf-8")
+    home = home.replace("__F_MARKS__", data_uri(ROOT / "assets/fonts/NotoNaskhArabic-Marks.woff2", "font/woff2"))
+    for token, font in FONTS.items():
+        home = home.replace(token, REPO + "assets/fonts/" + font)
+    home = home.replace("__ADHAN_JS__", (ROOT / "src/vendor/adhan.umd.min.js").read_text(encoding="utf-8").strip())
+    home = home.replace("__HADITH_HOME__", js_json(hadith_for_home()))
+    out = ROOT / "dist/home.html"
+    out.write_text(home, encoding="utf-8")
+    print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size / 1e6:.2f} MB, {len(hadith_for_home())} hadith)")
 
 
 if __name__ == "__main__":
