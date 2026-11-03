@@ -102,9 +102,9 @@ public class MainActivity extends Activity {
     private int packageSeq;
     private PopupWindow inputsPopup;
     private HomeCard homeCard;
-    // the sky, clock and cards behind the buttons and favourites (dist/home.html); null without a WebView
+    // the clock and cards over the photos, behind the buttons and favourites (dist/home.html); off without a WebView
     private HomePage homePage;
-    private boolean sky;
+    private boolean withPage;
 
     private final BroadcastReceiver tick = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) { updateClock(); updateWifi(); }
@@ -152,16 +152,15 @@ public class MainActivity extends Activity {
         updateClock();
         updateWifi();
         homeCard.refresh();
-        if (sky) homePage.resume();
+        if (withPage) homePage.resume();
         View last = lastFocusedId == View.NO_ID ? null : findViewById(lastFocusedId);
         if (last == null && !dockCards.isEmpty()) last = dockCards.get(0);
         if (last != null) last.requestFocus();
         // Catch installs/removals that happened while another app was in front.
         if (getPackageManager().getChangedPackages(packageSeq) != null) buildApps();
         if (firstShow) { firstShow = false; playEntrance(); }
-        // New photo on return if the current one has been up for the full interval (only without the sky).
-        if (sky) { /* the page draws the background */ }
-        else if (wallIndex < 0 || SystemClock.elapsedRealtime() - wallChangedAt >= WALLPAPER_INTERVAL_MS) nextWallpaper();
+        // New photo on return if the current one has been up for the full interval.
+        if (wallIndex < 0 || SystemClock.elapsedRealtime() - wallChangedAt >= WALLPAPER_INTERVAL_MS) nextWallpaper();
         else scheduleWallpaper(WALLPAPER_INTERVAL_MS - (SystemClock.elapsedRealtime() - wallChangedAt));
     }
 
@@ -172,7 +171,7 @@ public class MainActivity extends Activity {
         unregisterReceiver(tick);
         if (inputsPopup != null) inputsPopup.dismiss();
         homeCard.pause();
-        if (sky) homePage.pause();
+        if (withPage) homePage.pause();
     }
 
     @Override
@@ -180,7 +179,7 @@ public class MainActivity extends Activity {
         unregisterReceiver(packages);
         unregisterReceiver(dockChanged);
         homeCard.destroy();
-        if (sky) homePage.destroy();
+        if (withPage) homePage.destroy();
         super.onDestroy();
     }
 
@@ -222,19 +221,18 @@ public class MainActivity extends Activity {
         try {
             wallpapers = getAssets().list("wallpapers");
         } catch (java.io.IOException ignored) { }
-        // The sky page covers the photos and the scrim; they stay only for a TV without a WebView.
+        // The page is transparent: the photos still rotate under it, as in the screensaver.
         homePage = new HomePage(this);
         View page = homePage.create();
-        sky = page != null;
-        if (sky) {
+        withPage = page != null;
+        if (withPage) {
             root.addView(page, 3, new FrameLayout.LayoutParams(-1, -1));   // above the photos and scrim, under the shade
-            gridShade.setBackgroundColor(0xCC050A2E);
         }
 
         glow = new View(this);
         root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
         setGlow(glowColor);
-        if (sky) glow.setVisibility(View.GONE);
+        if (withPage) glow.setVisibility(View.GONE);
 
         scroll = new HomeScrollView(this);
         scroll.setVerticalScrollBarEnabled(false);
@@ -262,12 +260,12 @@ public class MainActivity extends Activity {
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setClipChildren(false);
         bottom.setClipToPadding(false);
-        hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(48), 0, dp(48), sky ? dp(22) : dp(30)));
+        hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(48), 0, dp(48), withPage ? dp(22) : dp(30)));
 
-        title = text(sky ? 12 : 34, sky ? "medium" : "sans-serif-light", Color.WHITE);
-        title.setShadowLayer(dp(sky ? 4 : 18), 0, 0, 0x66000000);
+        title = text(withPage ? 12 : 34, withPage ? "medium" : "sans-serif-light", Color.WHITE);
+        title.setShadowLayer(dp(withPage ? 4 : 18), 0, 0, 0x66000000);
         title.setSingleLine(true);
-        if (sky) {   // a fixed «المفضلة» over the row, on the right like the page's own labels
+        if (withPage) {   // a fixed «المفضلة» over the row, on the right like the page's own labels
             title.setText("المفضلة");
             bottom.addView(title, new LinearLayout.LayoutParams(-1, -2));
             title.setGravity(Gravity.RIGHT);
@@ -282,11 +280,11 @@ public class MainActivity extends Activity {
         dockRow.setGravity(Gravity.CENTER);
         dockRow.setClipChildren(false);
         dockRow.setClipToPadding(false);
-        dockRow.setPadding(dp(20), sky ? dp(16) : dp(22), dp(20), sky ? dp(16) : dp(22));
+        dockRow.setPadding(dp(20), withPage ? dp(16) : dp(22), dp(20), withPage ? dp(16) : dp(22));
         GradientDrawable band = new GradientDrawable();
-        band.setCornerRadius(dp(sky ? 18 : 26));
-        band.setColor(sky ? 0x1AFFFFFF : 0x1FFFFFFF);
-        band.setStroke(dp(1), sky ? 0x61FFFFFF : 0x14FFFFFF);
+        band.setCornerRadius(dp(withPage ? 18 : 26));
+        band.setColor(withPage ? 0x1AFFFFFF : 0x1FFFFFFF);
+        band.setStroke(dp(1), withPage ? 0x61FFFFFF : 0x14FFFFFF);
         dockRow.setBackground(band);
         bottom.addView(dockRow, new LinearLayout.LayoutParams(-1, -2));
 
@@ -330,7 +328,7 @@ public class MainActivity extends Activity {
         for (TextView t : new TextView[]{greeting, clock, ampm, date}) t.setShadowLayer(dp(3), 0, dp(1), 0x80000000);
         left.setGravity(Gravity.RIGHT);
         for (TextView t : new TextView[]{greeting, date}) t.setGravity(Gravity.RIGHT);
-        if (!sky) header.addView(left, new FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.TOP));
+        if (!withPage) header.addView(left, new FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.TOP));
 
         LinearLayout right = new LinearLayout(this);
         right.setGravity(Gravity.CENTER_VERTICAL);
@@ -445,7 +443,7 @@ public class MainActivity extends Activity {
         appsLabel.setVisibility(rest.isEmpty() ? View.GONE : View.VISIBLE);
         wireFocus();
 
-        if (!dock.isEmpty() && !sky) { title.setText(dock.get(0).label); setGlow(dock.get(0).color); }
+        if (!dock.isEmpty() && !withPage) { title.setText(dock.get(0).label); setGlow(dock.get(0).color); }
         View last = lastFocusedId == View.NO_ID ? null : findViewById(lastFocusedId);
         if (last != null) last.requestFocus();
         else if (!dockCards.isEmpty()) dockCards.get(0).requestFocus();
@@ -518,9 +516,9 @@ public class MainActivity extends Activity {
             if (!has) return;
             lastFocusedId = v.getId();
             if (inDock) {
-                if (!sky) title.setText(app.label);
+                if (!withPage) title.setText(app.label);
                 title.animate().alpha(1f).setDuration(200).start();
-                if (!sky) animateGlow(app.color);
+                if (!withPage) animateGlow(app.color);
                 fadeGlow(1f);
                 scroll.smoothScrollTo(0, 0);
             } else {

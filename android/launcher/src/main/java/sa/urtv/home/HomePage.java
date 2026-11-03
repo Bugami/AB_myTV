@@ -22,8 +22,8 @@ import java.net.URL;
 import java.util.Collections;
 
 /**
- * The home screen's sky and cards (clock, dates, weather, prayer times, a row of hadith): dist/home.html in a
- * full-screen WebView behind the buttons and the favourites, which stay native and keep the remote's focus.
+ * The home screen's clock, dates, weather, prayer times and a hadith: dist/home.html in a transparent
+ * full-screen WebView over the photos and behind the buttons and the favourites, which stay native and keep the remote's focus.
  * The page ships in the APK; every 6 hours the newest one is fetched from the repository, so the design can
  * change without a new APK. City and coordinates come from the screensaver's settings (ConfigProvider).
  */
@@ -32,7 +32,6 @@ final class HomePage {
     private static final String FONTS = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/assets/fonts/";
     private static final Uri CONFIG = Uri.parse("content://sa.urtv.screensaver.config");
     private static final long INTERVAL_MS = 6L * 3600 * 1000;
-    static final int SKY = 0xFF0A1B66;   // the page's night colour, shown until it has painted
 
     private final Activity activity;
     private WebView web;
@@ -40,7 +39,7 @@ final class HomePage {
 
     HomePage(Activity activity) { this.activity = activity; }
 
-    /** The WebView, or null when this TV has none (then the launcher keeps its photos). */
+    /** The WebView, or null when this TV has none (then the launcher shows its own clock). */
     @SuppressLint("SetJavaScriptEnabled")
     @SuppressWarnings("deprecation")
     View create() {
@@ -50,7 +49,7 @@ final class HomePage {
             web = null;
             return null;
         }
-        web.setBackgroundColor(SKY);
+        web.setBackgroundColor(android.graphics.Color.TRANSPARENT);   // the photos show through
         web.setFocusable(false);
         web.setFocusableInTouchMode(false);
         web.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);

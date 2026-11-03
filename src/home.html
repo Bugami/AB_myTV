@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>الواجهة الرئيسية</title>
 <!--
-  The home screen's sky and its cards, drawn behind the launcher's own buttons (top left) and favourites (bottom).
+  The home screen's clock and cards, drawn over the launcher's photos and behind the launcher's own buttons (top left) and favourites (bottom).
   sa.urtv.home loads it full screen in a WebView that never takes focus; everything here is look, nothing is
   pressed. Built by src/build.py into dist/home.html; the launcher fetches that file from the repo every 6 hours.
   Settings come in the fragment like the screensaver's: #city=..&lat=..&lon=..&tz=..  (and &now=ISO for previews)
-  Leaves free: the top-left corner (the buttons) and the bottom 30% (the favourites).
+  The page itself is transparent. Leaves free: the top-left corner (the buttons) and the bottom 30% (the favourites).
 -->
 <style>
   @font-face{font-family:'Thmanyah';font-weight:300;font-display:block;src:url("__F_LIGHT__") format("woff2")}
@@ -19,146 +19,99 @@
   /* ﷺ is not in Thmanyah */
   @font-face{font-family:'Marks';src:url("__F_MARKS__") format("woff2");unicode-range:U+FDFA,U+FD3E-FD3F}
 
-  /* layout: a 16:9 stage in vw/vh. Clock and dates top right, weather and prayer cards top left under the
-     launcher's buttons, a row of hadith across the middle, the bottom 30% left to the launcher's favourites. */
+  /* layout: a 16:9 stage in vw/vh over the launcher's own photos (the screensaver's Saudi landscapes, a new one
+     every 10 minutes): clock and dates top right, weather and prayer cards top left under the launcher's buttons,
+     one hadith in the middle, the bottom 30% left to the launcher's favourites. */
   :root{
-    --sky1:#0a1b66; --sky2:#1b3cc0; --sky3:#3a5fe6;        /* night, the default */
-    --glass:rgba(255,255,255,.10); --edge:rgba(255,255,255,.38); --ink:#ffffff; --ink2:rgba(255,255,255,.78);
-    --accent:#ffe08a; --hl:rgba(255,255,255,.20);
+    --glass:rgba(8,12,22,.46); --edge:rgba(255,255,255,.26); --ink:#ffffff; --ink2:rgba(255,255,255,.80);
+    --accent:#ffd98a; --hl:rgba(255,255,255,.18);
     --sans:'Thmanyah','Marks','Noto Naskh Arabic',sans-serif;
     --display:'ThmanyahDisplay','Thmanyah','Marks',serif;
+    --shadow:0 .1vw .6vw rgba(0,0,0,.55);
   }
-  body[data-sky=dawn]{--sky1:#25266e;--sky2:#7a5fb8;--sky3:#f0a98e;--glass:rgba(40,20,80,.16)}
-  body[data-sky=day]{--sky1:#1565c8;--sky2:#3d97e6;--sky3:#8fcdf7;--glass:rgba(10,50,120,.16);--edge:rgba(255,255,255,.5)}
-  body[data-sky=afternoon]{--sky1:#2468c4;--sky2:#6aa6e0;--sky3:#efc98d;--glass:rgba(20,50,110,.18);--edge:rgba(255,255,255,.5)}
-  body[data-sky=sunset]{--sky1:#2a2470;--sky2:#9c4386;--sky3:#f08a52;--glass:rgba(40,10,60,.18)}
-  body[data-sky=dusk]{--sky1:#120f45;--sky2:#3a2b8f;--sky3:#7a4fb0;--glass:rgba(255,255,255,.08)}
-
-  html,body{margin:0;height:100%;overflow:hidden;cursor:none;user-select:none}
-  body{
-    font-family:var(--sans);color:var(--ink);
-    background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 58%,var(--sky3) 100%);
-    transition:background 4s linear;
-    opacity:0;animation:show .6s .3s forwards;
-  }
+  html,body{margin:0;height:100%;overflow:hidden;cursor:none;user-select:none;background:transparent}
+  body{font-family:var(--sans);color:var(--ink);opacity:0;animation:show .6s .3s forwards}
   @keyframes show{to{opacity:1}}
   .num{font-variant-numeric:tabular-nums}
-
-  /* ---------------------------------------------------------------- sky */
-  #stars{position:absolute;inset:0;transition:opacity 4s}
-  body:not([data-sky=night]):not([data-sky=dusk]) #stars{opacity:0}
-  .star{position:absolute;width:.16vw;height:.16vw;border-radius:50%;background:#fff;animation:twinkle 4s ease-in-out infinite}
-  @keyframes twinkle{0%,100%{opacity:.9}50%{opacity:.25}}
-  #orb{
-    position:absolute;left:51%;top:16vh;width:3.4vw;height:3.4vw;border-radius:50%;
-    background:radial-gradient(circle at 40% 40%,#fffbea,#f4ecd0 60%,#e8dcb0);
-    box-shadow:0 0 2.2vw rgba(255,250,220,.55),0 0 6vw rgba(255,250,220,.2);
-    transition:all 4s;
-  }
-  body[data-sky=day] #orb,body[data-sky=afternoon] #orb{
-    background:radial-gradient(circle,#fffdf0,#ffe27a 70%);width:4.2vw;height:4.2vw;top:13vh;
-    box-shadow:0 0 3vw rgba(255,230,120,.8),0 0 9vw rgba(255,230,120,.35);
-  }
-  body[data-sky=dawn] #orb,body[data-sky=sunset] #orb{
-    background:radial-gradient(circle,#fff1d6,#ffb36b 70%);top:30vh;width:4.6vw;height:4.6vw;
-    box-shadow:0 0 3vw rgba(255,170,90,.8),0 0 10vw rgba(255,140,80,.35);
-  }
-  .cloud{position:absolute;opacity:.42;animation:drift linear infinite;filter:blur(.25vw)}
-  .cloud svg{display:block;width:100%;height:auto}
-  body[data-sky=day] .cloud,body[data-sky=afternoon] .cloud{opacity:.8;filter:blur(.15vw)}
-  @keyframes drift{from{transform:translateX(-3vw)}50%{transform:translateX(3vw)}to{transform:translateX(-3vw)}}
+  /* a soft shade behind the clock and the cards, so white text holds on bright sand or sky */
+  #shade{position:absolute;inset:0;background:
+    radial-gradient(ellipse 48vw 34vh at 82% 26%,rgba(0,0,0,.34),transparent 70%),
+    radial-gradient(ellipse 40vw 34vh at 20% 30%,rgba(0,0,0,.26),transparent 70%),
+    radial-gradient(ellipse 46vw 16vh at 50% 58%,rgba(0,0,0,.30),transparent 72%)}
 
   /* ---------------------------------------------------------------- top right: clock and dates */
-  #when{position:absolute;right:5vw;top:13.5vh;display:flex;align-items:center;gap:2.2vw}
-  #clock{display:flex;align-items:flex-end;gap:.7vw;direction:ltr}
-  #ampm{font-size:2.1vw;font-weight:500;color:var(--ink2);margin-bottom:1.6vw}
-  #hm{font-family:var(--display);font-weight:700;font-size:10.5vw;line-height:.95;letter-spacing:0;
-      text-shadow:0 .3vw 2vw rgba(0,0,30,.35)}
+  #when{position:absolute;right:5vw;top:13vh;display:flex;align-items:center;gap:2.4vw;text-shadow:var(--shadow)}
+  #clock{display:flex;align-items:flex-end;gap:.8vw;direction:ltr}
+  #ampm{font-size:2.5vw;font-weight:500;color:var(--ink2);margin-bottom:1.8vw}
+  #hm{font-family:var(--display);font-weight:700;font-size:11.5vw;line-height:.95;letter-spacing:0;
+      text-shadow:0 .3vw 2.4vw rgba(0,0,0,.45)}
   #hm .d{display:inline-block;margin:0 .05em}
   /* the display face draws its colon as two diamonds: two round dots instead */
   #hm .c{display:inline-flex;flex-direction:column;justify-content:center;gap:.16em;height:.62em;margin:0 .12em;vertical-align:.1em}
   #hm .c i{width:.11em;height:.11em;border-radius:50%;background:currentColor;opacity:.9}
-  .vline{width:1px;align-self:stretch;margin:1.2vw 0;background:linear-gradient(transparent,rgba(255,255,255,.55),transparent)}
-  #dates{display:flex;flex-direction:column;gap:.5vw;text-align:right}
-  #day{font-size:2.5vw;font-weight:500}
-  #hijri,#greg{font-size:1.55vw;font-weight:400;color:var(--ink)}
+  .vline{width:1px;align-self:stretch;margin:1.2vw 0;background:linear-gradient(transparent,rgba(255,255,255,.6),transparent)}
+  #dates{display:flex;flex-direction:column;gap:.6vw;text-align:right}
+  #day{font-size:2.9vw;font-weight:500}
+  #hijri,#greg{font-size:1.85vw;font-weight:400;color:var(--ink)}
   #greg{color:var(--ink2)}
 
   /* ---------------------------------------------------------------- top left: weather and prayer cards */
-  #cards{position:absolute;left:5vw;top:15vh;display:flex;gap:1.1vw;align-items:flex-start}
-  .block .hd{font-size:1.2vw;font-weight:500;margin:0 .3vw .6vw;color:var(--ink)}
+  #cards{position:absolute;left:5vw;top:14.5vh;display:flex;gap:1.2vw;align-items:flex-start}
+  .block .hd{font-size:1.4vw;font-weight:500;margin:0 .3vw .6vw;color:var(--ink);text-shadow:var(--shadow)}
   .card{
-    width:15.6vw;height:27vh;box-sizing:border-box;padding:1.1vw 1.2vw;border-radius:1.1vw;
+    width:18vw;height:30vh;box-sizing:border-box;padding:1.15vw 1.3vw;border-radius:1.1vw;
     background:var(--glass);border:1px solid var(--edge);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    box-shadow:0 1vw 3vw rgba(0,0,40,.18), inset 0 1px 0 rgba(255,255,255,.25);
+    box-shadow:0 1vw 3vw rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.14);
     display:flex;flex-direction:column;
   }
   /* weather */
-  #wx-city{display:flex;align-items:center;justify-content:center;gap:.4vw;font-size:1.05vw;color:var(--ink)}
-  #wx-city svg{width:.95vw;height:.95vw}
+  #wx-city{display:flex;align-items:center;justify-content:center;gap:.4vw;font-size:1.25vw;color:var(--ink)}
+  #wx-city svg{width:1.1vw;height:1.1vw}
   #wx-main{flex:1;display:flex;align-items:center;justify-content:center;gap:1vw;direction:ltr}
-  #wx-icon{width:4.4vw;height:4.4vw}
-  #wx-temp{font-family:var(--display);font-weight:700;font-size:3.2vw;line-height:1}
-  #wx-desc{text-align:center;font-size:1vw;color:var(--ink2);margin-top:-.8vh}
-  #wx-stats{display:flex;justify-content:space-between;margin-top:1.4vh;padding-top:1.1vh;border-top:1px solid rgba(255,255,255,.18)}
-  .st{display:flex;flex-direction:column;align-items:center;gap:.2vw;font-size:.95vw}
-  .st small{font-size:.72vw;color:var(--ink2)}
-  .st svg{width:.9vw;height:.9vw;opacity:.85}
-  #wx-off{flex:1;display:none;align-items:center;justify-content:center;text-align:center;font-size:1vw;color:var(--ink2)}
+  #wx-icon{width:4.8vw;height:4.8vw}
+  #wx-temp{font-family:var(--display);font-weight:700;font-size:3.7vw;line-height:1}
+  #wx-desc{text-align:center;font-size:1.2vw;color:var(--ink2);margin-top:-.8vh}
+  #wx-stats{display:flex;justify-content:space-between;margin-top:1.3vh;padding-top:1vh;border-top:1px solid rgba(255,255,255,.18)}
+  .st{display:flex;flex-direction:column;align-items:center;gap:.2vw;font-size:1.12vw}
+  .st small{font-size:.85vw;color:var(--ink2)}
+  .st svg{width:1vw;height:1vw;opacity:.85}
+  #wx-off{flex:1;display:none;align-items:center;justify-content:center;text-align:center;font-size:1.2vw;color:var(--ink2)}
   .wx-none #wx-main,.wx-none #wx-desc,.wx-none #wx-stats{display:none}
   .wx-none #wx-off{display:flex}
   /* prayers */
-  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.25vh;flex:1}
-  #prayers li{display:flex;align-items:center;gap:.6vw;padding:.42vh .6vw;border-radius:.6vw;font-size:1.05vw}
-  #prayers li svg{width:1.05vw;height:1.05vw;flex:none;opacity:.9}
+  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.2vh;flex:1}
+  #prayers li{display:flex;align-items:center;gap:.7vw;padding:.45vh .7vw;border-radius:.6vw;font-size:1.28vw}
+  #prayers li svg{width:1.2vw;height:1.2vw;flex:none;opacity:.9}
   #prayers li .n{flex:1}
   #prayers li .t{direction:rtl}
-  #prayers li.next{background:var(--hl);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
-  #prayers li.next .t,#prayers li.next .n{font-weight:500}
-  #prayers li.past{opacity:.62}
-  #pr-left{text-align:center;font-size:.95vw;color:var(--ink2);padding-top:.9vh;border-top:1px solid rgba(255,255,255,.18)}
+  #prayers li.next{background:var(--hl);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+  #prayers li.next .t,#prayers li.next .n{font-weight:500;color:var(--accent)}
+  #prayers li.past{opacity:.6}
+  #pr-left{text-align:center;font-size:1.12vw;color:var(--ink2);padding-top:.8vh;border-top:1px solid rgba(255,255,255,.18)}
   #pr-left b{color:var(--ink);font-weight:500}
 
-  /* ---------------------------------------------------------------- the hadith row */
-  #hadith{position:absolute;left:5vw;right:5vw;top:48vh}
-  #hadith .hd{display:flex;justify-content:space-between;align-items:center;margin:0 .3vw .9vh}
-  #hadith .hd b{font-size:1.2vw;font-weight:500}
-  #dots{display:flex;gap:.35vw}
-  #dots i{width:.42vw;height:.42vw;border-radius:50%;background:rgba(255,255,255,.35);transition:all .4s}
-  #dots i.on{background:#fff;width:1.2vw;border-radius:.3vw}
-  #hrow{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1vw}
+  /* ---------------------------------------------------------------- one hadith, in the middle */
+  #hadith{position:absolute;left:50%;top:50vh;transform:translateX(-50%);width:64vw}
   .h{
-    position:relative;height:15.5vh;box-sizing:border-box;padding:1.15vh 1.3vw;border-radius:1vw;overflow:hidden;
-    background:var(--glass);border:1px solid var(--edge);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-sizing:border-box;padding:1.5vh 2.4vw 1.4vh;border-radius:1.2vw;text-align:center;
+    background:var(--glass);border:1px solid var(--edge);box-shadow:0 1vw 3vw rgba(0,0,0,.25);
     display:flex;flex-direction:column;gap:.5vh;min-width:0;
   }
-  .h .who{font-size:.85vw;color:var(--accent);font-weight:500}
+  .h .who{font-size:1.15vw;color:var(--accent);font-weight:500}
   .h .tx{
-    flex:1;font-size:1.22vw;line-height:1.62;font-weight:400;min-width:0;
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
+    font-size:1.9vw;line-height:1.6;font-weight:400;min-width:0;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
   }
-  .h .src{font-size:.78vw;color:var(--ink2)}
-  .h.in{animation:rise .7s both}
-  @keyframes rise{from{opacity:0;transform:translateY(1.2vh)}to{opacity:1;transform:none}}
+  .h .src{font-size:1vw;color:var(--ink2)}
+  .h.in{animation:rise .8s both}
+  @keyframes rise{from{opacity:0;transform:translateY(1vh)}to{opacity:1;transform:none}}
 
-  @media (prefers-reduced-motion:reduce){.cloud,.star,.h.in{animation:none}}
+  @media (prefers-reduced-motion:reduce){.h.in{animation:none}}
 </style>
 </head>
-<body data-sky="night">
+<body>
 
-<div id="stars"></div>
-<div id="orb"></div>
-<div class="cloud" style="left:40%;top:11vh;width:12vw;animation-duration:140s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
-<div class="cloud" style="left:47%;top:27vh;width:9vw;animation-duration:110s;animation-delay:-40s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
-<div class="cloud" style="left:63%;top:5vh;width:7vw;animation-duration:170s;animation-delay:-90s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
+<div id="shade"></div>
 
 <section id="when">
   <div id="clock"><span id="ampm"></span><span id="hm" class="num"></span></div>
@@ -187,10 +140,7 @@
   </div>
 </section>
 
-<section id="hadith">
-  <div class="hd"><b>أحاديث متنوعة</b><div id="dots"></div></div>
-  <div id="hrow"></div>
-</section>
+<section id="hadith"><div id="hrow"></div></section>
 
 <script>
 __ADHAN_JS__
@@ -237,27 +187,6 @@ const svg = (k, sw = 1.7) => `<svg viewBox="0 0 24 24" fill="none" stroke="curre
 // the crescent beside a clear night, drawn filled like the photo's moon
 const WX_MOON = '<svg viewBox="0 0 48 48"><path fill="#fff6d6" d="M34 30A15 15 0 1 1 18 8a12 12 0 0 0 16 22z"/><path fill="#fff6d6" d="M38 9l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1zM31 4l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z"/></svg>';
 const WX_SUN = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9" fill="#ffe27a"/><g stroke="#ffe27a" stroke-width="3" stroke-linecap="round"><path d="M24 5v5M24 38v5M5 24h5M38 24h5M10.6 10.6l3.5 3.5M33.9 33.9l3.5 3.5M10.6 37.4l3.5-3.5M33.9 14.1l3.5-3.5"/></g></svg>';
-
-// ---------------------------------------------------------------- stars
-(function(){
-  const box = document.getElementById('stars');
-  let seed = 7;
-  const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
-  for(let i = 0; i < 60; i++){
-    const s = document.createElement('i');
-    s.className = 'star';
-    // keep them out of the cards' way: mostly the sky band at the top and the middle
-    let x, y;
-    do { x = rnd() * 100; y = rnd() * 46; } while (x < 39 && y > 13);   // not behind the weather and prayer cards
-    s.style.left = x + '%';
-    s.style.top = y + 'vh';
-    const z = .08 + rnd() * .14;
-    s.style.width = s.style.height = z + 'vw';
-    s.style.animationDelay = (-rnd() * 4) + 's';
-    s.style.animationDuration = (3 + rnd() * 4) + 's';
-    box.appendChild(s);
-  }
-})();
 
 // ---------------------------------------------------------------- clock and dates
 function tickClock(){
@@ -316,20 +245,6 @@ function tickPrayers(){
   const h = Math.floor(mins / 60), m = mins % 60;
   const left = h ? `${AR(h)} س و ${AR(m)} د` : `${AR(m)} د`;
   document.getElementById('pr-left').innerHTML = `${tname} بعد <b class="num">${left}</b>`;
-  setSky(pt, n);
-}
-
-// ---------------------------------------------------------------- the sky follows the day
-function setSky(pt, n){
-  const min = 60000;
-  const t = k => pt[k].getTime();
-  let sky = 'night';
-  if(n >= t('fajr') && n < t('sunrise') + 25 * min) sky = 'dawn';
-  else if(n >= t('sunrise') + 25 * min && n < t('asr')) sky = 'day';
-  else if(n >= t('asr') && n < t('maghrib') - 35 * min) sky = 'afternoon';
-  else if(n >= t('maghrib') - 35 * min && n < t('maghrib') + 20 * min) sky = 'sunset';
-  else if(n >= t('maghrib') + 20 * min && n < t('isha') + 30 * min) sky = 'dusk';
-  if(document.body.dataset.sky !== sky) document.body.dataset.sky = sky;
 }
 
 // ---------------------------------------------------------------- weather (Open-Meteo, no key)
@@ -379,8 +294,8 @@ async function loadWeather(){
   }
 }
 
-// ---------------------------------------------------------------- hadith, three at a time
-const PER = 3, PAGE_MS = 30000;
+// ---------------------------------------------------------------- hadith, one at a time
+const PAGE_MS = 45000;
 let order = [], page = 0;
 function shuffleForToday(){
   const p = parts(now(), {year:'numeric', month:'numeric', day:'numeric'});
@@ -394,20 +309,11 @@ function shuffleForToday(){
   page = 0;
 }
 function showHadith(){
-  const row = document.getElementById('hrow');
   if(!HADITH.length){ document.getElementById('hadith').hidden = true; return; }
-  const pages = Math.ceil(order.length / PER);
-  const pick = order.slice(page * PER, page * PER + PER);
-  row.innerHTML = pick.map((k, i) => {
-    const h = HADITH[k];
-    return `<article class="h in" style="animation-delay:${i * 90}ms"><div class="who">قال رسول الله ﷺ</div>`
-      + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
-  }).join('');
-  // five dots: where this page sits in a window of five
-  const dots = document.getElementById('dots');
-  const on = page % 5;
-  dots.innerHTML = Array.from({length: Math.min(5, pages)}, (_, i) => `<i class="${i === on ? 'on' : ''}"></i>`).join('');
-  page = (page + 1) % pages;
+  const h = HADITH[order[page]];
+  document.getElementById('hrow').innerHTML = `<article class="h in"><div class="who">قال رسول الله ﷺ</div>`
+    + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
+  page = (page + 1) % order.length;
 }
 
 // ---------------------------------------------------------------- start

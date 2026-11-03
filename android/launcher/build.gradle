@@ -54,7 +54,7 @@ def copyWallpapers = tasks.register('copyWallpapers', Copy) {
 }
 preBuild.dependsOn copyWallpapers
 
-// the home screen's sky page and the optional card (the screensaver's page in card-only mode), with their woff2 fonts
+// the home screen's page (clock and cards) and the optional card (the screensaver's page in card-only mode), with their woff2 fonts
 def copyWeb = tasks.register('copyWeb', Copy) {
     from('../../dist') { include 'tv.html', 'home.html'; into 'web' }
     from('../../assets/fonts') { include '*.woff2'; into 'fonts' }

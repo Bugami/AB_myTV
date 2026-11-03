@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>الواجهة الرئيسية</title>
 <!--
-  The home screen's sky and its cards, drawn behind the launcher's own buttons (top left) and favourites (bottom).
+  The home screen's clock and cards, drawn over the launcher's photos and behind the launcher's own buttons (top left) and favourites (bottom).
   sa.urtv.home loads it full screen in a WebView that never takes focus; everything here is look, nothing is
   pressed. Built by src/build.py into dist/home.html; the launcher fetches that file from the repo every 6 hours.
   Settings come in the fragment like the screensaver's: #city=..&lat=..&lon=..&tz=..  (and &now=ISO for previews)
-  Leaves free: the top-left corner (the buttons) and the bottom 30% (the favourites).
+  The page itself is transparent. Leaves free: the top-left corner (the buttons) and the bottom 30% (the favourites).
 -->
 <style>
   @font-face{font-family:'Thmanyah';font-weight:300;font-display:block;src:url("https://raw.githubusercontent.com/Bugami/AB_myTV/master/assets/fonts/Thmanyah-Light.woff2") format("woff2")}
@@ -19,146 +19,99 @@
   /* ﷺ is not in Thmanyah */
   @font-face{font-family:'Marks';src:url("data:font/woff2;base64,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") format("woff2");unicode-range:U+FDFA,U+FD3E-FD3F}
 
-  /* layout: a 16:9 stage in vw/vh. Clock and dates top right, weather and prayer cards top left under the
-     launcher's buttons, a row of hadith across the middle, the bottom 30% left to the launcher's favourites. */
+  /* layout: a 16:9 stage in vw/vh over the launcher's own photos (the screensaver's Saudi landscapes, a new one
+     every 10 minutes): clock and dates top right, weather and prayer cards top left under the launcher's buttons,
+     one hadith in the middle, the bottom 30% left to the launcher's favourites. */
   :root{
-    --sky1:#0a1b66; --sky2:#1b3cc0; --sky3:#3a5fe6;        /* night, the default */
-    --glass:rgba(255,255,255,.10); --edge:rgba(255,255,255,.38); --ink:#ffffff; --ink2:rgba(255,255,255,.78);
-    --accent:#ffe08a; --hl:rgba(255,255,255,.20);
+    --glass:rgba(8,12,22,.46); --edge:rgba(255,255,255,.26); --ink:#ffffff; --ink2:rgba(255,255,255,.80);
+    --accent:#ffd98a; --hl:rgba(255,255,255,.18);
     --sans:'Thmanyah','Marks','Noto Naskh Arabic',sans-serif;
     --display:'ThmanyahDisplay','Thmanyah','Marks',serif;
+    --shadow:0 .1vw .6vw rgba(0,0,0,.55);
   }
-  body[data-sky=dawn]{--sky1:#25266e;--sky2:#7a5fb8;--sky3:#f0a98e;--glass:rgba(40,20,80,.16)}
-  body[data-sky=day]{--sky1:#1565c8;--sky2:#3d97e6;--sky3:#8fcdf7;--glass:rgba(10,50,120,.16);--edge:rgba(255,255,255,.5)}
-  body[data-sky=afternoon]{--sky1:#2468c4;--sky2:#6aa6e0;--sky3:#efc98d;--glass:rgba(20,50,110,.18);--edge:rgba(255,255,255,.5)}
-  body[data-sky=sunset]{--sky1:#2a2470;--sky2:#9c4386;--sky3:#f08a52;--glass:rgba(40,10,60,.18)}
-  body[data-sky=dusk]{--sky1:#120f45;--sky2:#3a2b8f;--sky3:#7a4fb0;--glass:rgba(255,255,255,.08)}
-
-  html,body{margin:0;height:100%;overflow:hidden;cursor:none;user-select:none}
-  body{
-    font-family:var(--sans);color:var(--ink);
-    background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 58%,var(--sky3) 100%);
-    transition:background 4s linear;
-    opacity:0;animation:show .6s .3s forwards;
-  }
+  html,body{margin:0;height:100%;overflow:hidden;cursor:none;user-select:none;background:transparent}
+  body{font-family:var(--sans);color:var(--ink);opacity:0;animation:show .6s .3s forwards}
   @keyframes show{to{opacity:1}}
   .num{font-variant-numeric:tabular-nums}
-
-  /* ---------------------------------------------------------------- sky */
-  #stars{position:absolute;inset:0;transition:opacity 4s}
-  body:not([data-sky=night]):not([data-sky=dusk]) #stars{opacity:0}
-  .star{position:absolute;width:.16vw;height:.16vw;border-radius:50%;background:#fff;animation:twinkle 4s ease-in-out infinite}
-  @keyframes twinkle{0%,100%{opacity:.9}50%{opacity:.25}}
-  #orb{
-    position:absolute;left:51%;top:16vh;width:3.4vw;height:3.4vw;border-radius:50%;
-    background:radial-gradient(circle at 40% 40%,#fffbea,#f4ecd0 60%,#e8dcb0);
-    box-shadow:0 0 2.2vw rgba(255,250,220,.55),0 0 6vw rgba(255,250,220,.2);
-    transition:all 4s;
-  }
-  body[data-sky=day] #orb,body[data-sky=afternoon] #orb{
-    background:radial-gradient(circle,#fffdf0,#ffe27a 70%);width:4.2vw;height:4.2vw;top:13vh;
-    box-shadow:0 0 3vw rgba(255,230,120,.8),0 0 9vw rgba(255,230,120,.35);
-  }
-  body[data-sky=dawn] #orb,body[data-sky=sunset] #orb{
-    background:radial-gradient(circle,#fff1d6,#ffb36b 70%);top:30vh;width:4.6vw;height:4.6vw;
-    box-shadow:0 0 3vw rgba(255,170,90,.8),0 0 10vw rgba(255,140,80,.35);
-  }
-  .cloud{position:absolute;opacity:.42;animation:drift linear infinite;filter:blur(.25vw)}
-  .cloud svg{display:block;width:100%;height:auto}
-  body[data-sky=day] .cloud,body[data-sky=afternoon] .cloud{opacity:.8;filter:blur(.15vw)}
-  @keyframes drift{from{transform:translateX(-3vw)}50%{transform:translateX(3vw)}to{transform:translateX(-3vw)}}
+  /* a soft shade behind the clock and the cards, so white text holds on bright sand or sky */
+  #shade{position:absolute;inset:0;background:
+    radial-gradient(ellipse 48vw 34vh at 82% 26%,rgba(0,0,0,.34),transparent 70%),
+    radial-gradient(ellipse 40vw 34vh at 20% 30%,rgba(0,0,0,.26),transparent 70%),
+    radial-gradient(ellipse 46vw 16vh at 50% 58%,rgba(0,0,0,.30),transparent 72%)}
 
   /* ---------------------------------------------------------------- top right: clock and dates */
-  #when{position:absolute;right:5vw;top:13.5vh;display:flex;align-items:center;gap:2.2vw}
-  #clock{display:flex;align-items:flex-end;gap:.7vw;direction:ltr}
-  #ampm{font-size:2.1vw;font-weight:500;color:var(--ink2);margin-bottom:1.6vw}
-  #hm{font-family:var(--display);font-weight:700;font-size:10.5vw;line-height:.95;letter-spacing:0;
-      text-shadow:0 .3vw 2vw rgba(0,0,30,.35)}
+  #when{position:absolute;right:5vw;top:13vh;display:flex;align-items:center;gap:2.4vw;text-shadow:var(--shadow)}
+  #clock{display:flex;align-items:flex-end;gap:.8vw;direction:ltr}
+  #ampm{font-size:2.5vw;font-weight:500;color:var(--ink2);margin-bottom:1.8vw}
+  #hm{font-family:var(--display);font-weight:700;font-size:11.5vw;line-height:.95;letter-spacing:0;
+      text-shadow:0 .3vw 2.4vw rgba(0,0,0,.45)}
   #hm .d{display:inline-block;margin:0 .05em}
   /* the display face draws its colon as two diamonds: two round dots instead */
   #hm .c{display:inline-flex;flex-direction:column;justify-content:center;gap:.16em;height:.62em;margin:0 .12em;vertical-align:.1em}
   #hm .c i{width:.11em;height:.11em;border-radius:50%;background:currentColor;opacity:.9}
-  .vline{width:1px;align-self:stretch;margin:1.2vw 0;background:linear-gradient(transparent,rgba(255,255,255,.55),transparent)}
-  #dates{display:flex;flex-direction:column;gap:.5vw;text-align:right}
-  #day{font-size:2.5vw;font-weight:500}
-  #hijri,#greg{font-size:1.55vw;font-weight:400;color:var(--ink)}
+  .vline{width:1px;align-self:stretch;margin:1.2vw 0;background:linear-gradient(transparent,rgba(255,255,255,.6),transparent)}
+  #dates{display:flex;flex-direction:column;gap:.6vw;text-align:right}
+  #day{font-size:2.9vw;font-weight:500}
+  #hijri,#greg{font-size:1.85vw;font-weight:400;color:var(--ink)}
   #greg{color:var(--ink2)}
 
   /* ---------------------------------------------------------------- top left: weather and prayer cards */
-  #cards{position:absolute;left:5vw;top:15vh;display:flex;gap:1.1vw;align-items:flex-start}
-  .block .hd{font-size:1.2vw;font-weight:500;margin:0 .3vw .6vw;color:var(--ink)}
+  #cards{position:absolute;left:5vw;top:14.5vh;display:flex;gap:1.2vw;align-items:flex-start}
+  .block .hd{font-size:1.4vw;font-weight:500;margin:0 .3vw .6vw;color:var(--ink);text-shadow:var(--shadow)}
   .card{
-    width:15.6vw;height:27vh;box-sizing:border-box;padding:1.1vw 1.2vw;border-radius:1.1vw;
+    width:18vw;height:30vh;box-sizing:border-box;padding:1.15vw 1.3vw;border-radius:1.1vw;
     background:var(--glass);border:1px solid var(--edge);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    box-shadow:0 1vw 3vw rgba(0,0,40,.18), inset 0 1px 0 rgba(255,255,255,.25);
+    box-shadow:0 1vw 3vw rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.14);
     display:flex;flex-direction:column;
   }
   /* weather */
-  #wx-city{display:flex;align-items:center;justify-content:center;gap:.4vw;font-size:1.05vw;color:var(--ink)}
-  #wx-city svg{width:.95vw;height:.95vw}
+  #wx-city{display:flex;align-items:center;justify-content:center;gap:.4vw;font-size:1.25vw;color:var(--ink)}
+  #wx-city svg{width:1.1vw;height:1.1vw}
   #wx-main{flex:1;display:flex;align-items:center;justify-content:center;gap:1vw;direction:ltr}
-  #wx-icon{width:4.4vw;height:4.4vw}
-  #wx-temp{font-family:var(--display);font-weight:700;font-size:3.2vw;line-height:1}
-  #wx-desc{text-align:center;font-size:1vw;color:var(--ink2);margin-top:-.8vh}
-  #wx-stats{display:flex;justify-content:space-between;margin-top:1.4vh;padding-top:1.1vh;border-top:1px solid rgba(255,255,255,.18)}
-  .st{display:flex;flex-direction:column;align-items:center;gap:.2vw;font-size:.95vw}
-  .st small{font-size:.72vw;color:var(--ink2)}
-  .st svg{width:.9vw;height:.9vw;opacity:.85}
-  #wx-off{flex:1;display:none;align-items:center;justify-content:center;text-align:center;font-size:1vw;color:var(--ink2)}
+  #wx-icon{width:4.8vw;height:4.8vw}
+  #wx-temp{font-family:var(--display);font-weight:700;font-size:3.7vw;line-height:1}
+  #wx-desc{text-align:center;font-size:1.2vw;color:var(--ink2);margin-top:-.8vh}
+  #wx-stats{display:flex;justify-content:space-between;margin-top:1.3vh;padding-top:1vh;border-top:1px solid rgba(255,255,255,.18)}
+  .st{display:flex;flex-direction:column;align-items:center;gap:.2vw;font-size:1.12vw}
+  .st small{font-size:.85vw;color:var(--ink2)}
+  .st svg{width:1vw;height:1vw;opacity:.85}
+  #wx-off{flex:1;display:none;align-items:center;justify-content:center;text-align:center;font-size:1.2vw;color:var(--ink2)}
   .wx-none #wx-main,.wx-none #wx-desc,.wx-none #wx-stats{display:none}
   .wx-none #wx-off{display:flex}
   /* prayers */
-  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.25vh;flex:1}
-  #prayers li{display:flex;align-items:center;gap:.6vw;padding:.42vh .6vw;border-radius:.6vw;font-size:1.05vw}
-  #prayers li svg{width:1.05vw;height:1.05vw;flex:none;opacity:.9}
+  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.2vh;flex:1}
+  #prayers li{display:flex;align-items:center;gap:.7vw;padding:.45vh .7vw;border-radius:.6vw;font-size:1.28vw}
+  #prayers li svg{width:1.2vw;height:1.2vw;flex:none;opacity:.9}
   #prayers li .n{flex:1}
   #prayers li .t{direction:rtl}
-  #prayers li.next{background:var(--hl);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
-  #prayers li.next .t,#prayers li.next .n{font-weight:500}
-  #prayers li.past{opacity:.62}
-  #pr-left{text-align:center;font-size:.95vw;color:var(--ink2);padding-top:.9vh;border-top:1px solid rgba(255,255,255,.18)}
+  #prayers li.next{background:var(--hl);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+  #prayers li.next .t,#prayers li.next .n{font-weight:500;color:var(--accent)}
+  #prayers li.past{opacity:.6}
+  #pr-left{text-align:center;font-size:1.12vw;color:var(--ink2);padding-top:.8vh;border-top:1px solid rgba(255,255,255,.18)}
   #pr-left b{color:var(--ink);font-weight:500}
 
-  /* ---------------------------------------------------------------- the hadith row */
-  #hadith{position:absolute;left:5vw;right:5vw;top:48vh}
-  #hadith .hd{display:flex;justify-content:space-between;align-items:center;margin:0 .3vw .9vh}
-  #hadith .hd b{font-size:1.2vw;font-weight:500}
-  #dots{display:flex;gap:.35vw}
-  #dots i{width:.42vw;height:.42vw;border-radius:50%;background:rgba(255,255,255,.35);transition:all .4s}
-  #dots i.on{background:#fff;width:1.2vw;border-radius:.3vw}
-  #hrow{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1vw}
+  /* ---------------------------------------------------------------- one hadith, in the middle */
+  #hadith{position:absolute;left:50%;top:50vh;transform:translateX(-50%);width:64vw}
   .h{
-    position:relative;height:15.5vh;box-sizing:border-box;padding:1.15vh 1.3vw;border-radius:1vw;overflow:hidden;
-    background:var(--glass);border:1px solid var(--edge);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-sizing:border-box;padding:1.5vh 2.4vw 1.4vh;border-radius:1.2vw;text-align:center;
+    background:var(--glass);border:1px solid var(--edge);box-shadow:0 1vw 3vw rgba(0,0,0,.25);
     display:flex;flex-direction:column;gap:.5vh;min-width:0;
   }
-  .h .who{font-size:.85vw;color:var(--accent);font-weight:500}
+  .h .who{font-size:1.15vw;color:var(--accent);font-weight:500}
   .h .tx{
-    flex:1;font-size:1.22vw;line-height:1.62;font-weight:400;min-width:0;
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
+    font-size:1.9vw;line-height:1.6;font-weight:400;min-width:0;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
   }
-  .h .src{font-size:.78vw;color:var(--ink2)}
-  .h.in{animation:rise .7s both}
-  @keyframes rise{from{opacity:0;transform:translateY(1.2vh)}to{opacity:1;transform:none}}
+  .h .src{font-size:1vw;color:var(--ink2)}
+  .h.in{animation:rise .8s both}
+  @keyframes rise{from{opacity:0;transform:translateY(1vh)}to{opacity:1;transform:none}}
 
-  @media (prefers-reduced-motion:reduce){.cloud,.star,.h.in{animation:none}}
+  @media (prefers-reduced-motion:reduce){.h.in{animation:none}}
 </style>
 </head>
-<body data-sky="night">
+<body>
 
-<div id="stars"></div>
-<div id="orb"></div>
-<div class="cloud" style="left:40%;top:11vh;width:12vw;animation-duration:140s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
-<div class="cloud" style="left:47%;top:27vh;width:9vw;animation-duration:110s;animation-delay:-40s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
-<div class="cloud" style="left:63%;top:5vh;width:7vw;animation-duration:170s;animation-delay:-90s">
-  <svg viewBox="0 0 200 90"><g fill="#fff"><ellipse cx="100" cy="66" rx="92" ry="22"/><circle cx="70" cy="50" r="30"/><circle cx="112" cy="40" r="38"/><circle cx="150" cy="56" r="24"/></g></svg>
-</div>
+<div id="shade"></div>
 
 <section id="when">
   <div id="clock"><span id="ampm"></span><span id="hm" class="num"></span></div>
@@ -187,10 +140,7 @@
   </div>
 </section>
 
-<section id="hadith">
-  <div class="hd"><b>أحاديث متنوعة</b><div id="dots"></div></div>
-  <div id="hrow"></div>
-</section>
+<section id="hadith"><div id="hrow"></div></section>
 
 <script>
 !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t="undefined"!=typeof globalThis?globalThis:t||self).adhan={})}(this,(function(t){"use strict";function e(t,e){var n=Object.keys(t);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(t);e&&(r=r.filter((function(e){return Object.getOwnPropertyDescriptor(t,e).enumerable}))),n.push.apply(n,r)}return n}function n(t){for(var n=1;n<arguments.length;n++){var r=null!=arguments[n]?arguments[n]:{};n%2?e(Object(r),!0).forEach((function(e){s(t,e,r[e])})):Object.getOwnPropertyDescriptors?Object.defineProperties(t,Object.getOwnPropertyDescriptors(r)):e(Object(r)).forEach((function(e){Object.defineProperty(t,e,Object.getOwnPropertyDescriptor(r,e))}))}return t}function r(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function a(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}function i(t,e,n){return e&&a(t.prototype,e),n&&a(t,n),Object.defineProperty(t,"prototype",{writable:!1}),t}function s(t,e,n){return e in t?Object.defineProperty(t,e,{value:n,enumerable:!0,configurable:!0,writable:!0}):t[e]=n,t}var o={Shafi:"shafi",Hanafi:"hanafi"};var h={MiddleOfTheNight:"middleofthenight",SeventhOfTheNight:"seventhofthenight",TwilightAngle:"twilightangle",recommended:function(t){return t.latitude>48?h.SeventhOfTheNight:h.MiddleOfTheNight}},u=i((function t(e,n){r(this,t),this.latitude=e,this.longitude=n})),l={Nearest:"nearest",Up:"up",None:"none"};function d(t,e){var n=t.getFullYear(),r=t.getMonth(),a=t.getDate()+e,i=t.getHours(),s=t.getMinutes(),o=t.getSeconds();return new Date(n,r,a,i,s,o)}function c(t,e){return g(t,60*e)}function g(t,e){return new Date(t.getTime()+1e3*e)}function f(t){var e=arguments.length>1&&void 0!==arguments[1]?arguments[1]:l.Nearest,n=t.getUTCSeconds(),r=n>=30?60-n:-1*n;return e===l.Up?r=60-n:e===l.None&&(r=0),g(t,r)}function m(t){for(var e=0,n=[31,j.isLeapYear(t.getFullYear())?29:28,31,30,31,30,31,31,30,31,30,31],r=0;r<t.getMonth();r++)e+=n[r];return e+=t.getDate()}function M(t){return t instanceof Date&&!isNaN(t.valueOf())}function v(t){return t*Math.PI/180}function p(t){return 180*t/Math.PI}function b(t,e){return t-e*Math.floor(t/e)}function w(t){return b(t,360)}var A={General:"general",Ahmer:"ahmer",Abyad:"abyad"},j={meanSolarLongitude:function(t){var e=t;return w(280.4664567+36000.76983*e+3032e-7*Math.pow(e,2))},meanLunarLongitude:function(t){return w(218.3165+481267.8813*t)},ascendingLunarNodeLongitude:function(t){var e=t;return w(125.04452-1934.136261*e+.0020708*Math.pow(e,2)+Math.pow(e,3)/45e4)},meanSolarAnomaly:function(t){var e=t;return w(357.52911+35999.05029*e-1537e-7*Math.pow(e,2))},solarEquationOfTheCenter:function(t,e){var n=t,r=v(e);return(1.914602-.004817*n-14e-6*Math.pow(n,2))*Math.sin(r)+(.019993-101e-6*n)*Math.sin(2*r)+289e-6*Math.sin(3*r)},apparentSolarLongitude:function(t,e){var n=t,r=125.04-1934.136*n;return w(e+j.solarEquationOfTheCenter(n,j.meanSolarAnomaly(n))-.00569-.00478*Math.sin(v(r)))},meanObliquityOfTheEcliptic:function(t){var e=t;return 23.439291-.013004167*e-1.639e-7*Math.pow(e,2)+5.036e-7*Math.pow(e,3)},apparentObliquityOfTheEcliptic:function(t,e){var n=125.04-1934.136*t;return e+.00256*Math.cos(v(n))},meanSiderealTime:function(t){var e=t;return w(280.46061837+360.98564736629*(36525*e+2451545-2451545)+387933e-9*Math.pow(e,2)-Math.pow(e,3)/3871e4)},nutationInLongitude:function(t,e,n,r){var a=e,i=n,s=r;return-17.2/3600*Math.sin(v(s))-1.32/3600*Math.sin(2*v(a))-.23/3600*Math.sin(2*v(i))+.21/3600*Math.sin(2*v(s))},nutationInObliquity:function(t,e,n,r){var a=e,i=n,s=r;return 9.2/3600*Math.cos(v(s))+.57/3600*Math.cos(2*v(a))+.1/3600*Math.cos(2*v(i))-.09/3600*Math.cos(2*v(s))},altitudeOfCelestialBody:function(t,e,n){var r=t,a=e,i=n,s=Math.sin(v(r))*Math.sin(v(a)),o=Math.cos(v(r))*Math.cos(v(a))*Math.cos(v(i));return p(Math.asin(s+o))},approximateTransit:function(t,e,n){return b((n+-1*t-e)/360,1)},correctedTransit:function(t,e,n,r,a,i){var s,o=t,h=r,u=a,l=i,d=-1*e,c=w(n+360.985647*o),g=w(j.interpolateAngles(h,u,l,o));return 24*(o+((s=c-d-g)>=-180&&s<=180?s:s-360*Math.round(s/360))/-360)},correctedHourAngle:function(t,e,n,r,a,i,s,o,h,u,l){var d=t,c=e,g=a,f=i,m=s,M=o,b=h,A=u,y=l,T=-1*n.longitude,S=Math.sin(v(c))-Math.sin(v(n.latitude))*Math.sin(v(b)),O=Math.cos(v(n.latitude))*Math.cos(v(b)),D=p(Math.acos(S/O)),N=r?d+D/360:d-D/360,P=w(g+360.985647*N),L=w(j.interpolateAngles(f,m,M,N)),C=j.interpolate(b,A,y,N),Y=P-T-L;return 24*(N+(j.altitudeOfCelestialBody(n.latitude,C,Y)-c)/(360*Math.cos(v(C))*Math.cos(v(n.latitude))*Math.sin(v(Y))))},interpolate:function(t,e,n,r){var a=t-e,i=n-t;return t+r/2*(a+i+r*(i-a))},interpolateAngles:function(t,e,n,r){var a=w(t-e),i=w(n-t);return t+r/2*(a+i+r*(i-a))},julianDay:function(t,e,n){var r=arguments.length>3&&void 0!==arguments[3]?arguments[3]:0,a=Math.trunc,i=a(e>2?t:t-1),s=a(e>2?e:e+12),o=n+r/24,h=a(i/100),u=a(2-h+a(h/4)),l=a(365.25*(i+4716)),d=a(30.6001*(s+1));return l+d+o+u-1524.5},julianCentury:function(t){return(t-2451545)/36525},isLeapYear:function(t){return t%4==0&&(t%100!=0||t%400==0)},seasonAdjustedMorningTwilight:function(t,e,n,r){var a,i=75+28.65/55*Math.abs(t),s=75+19.44/55*Math.abs(t),o=75+32.74/55*Math.abs(t),h=75+48.1/55*Math.abs(t),u=(a=j.daysSinceSolstice(e,n,t))<91?i+(s-i)/91*a:a<137?s+(o-s)/46*(a-91):a<183?o+(h-o)/46*(a-137):a<229?h+(o-h)/46*(a-183):a<275?o+(s-o)/46*(a-229):s+(i-s)/91*(a-275);return g(r,Math.round(-60*u))},seasonAdjustedEveningTwilight:function(t,e,n,r,a){var i,s,o,h;a===A.Ahmer?(i=62+17.4/55*Math.abs(t),s=62-7.16/55*Math.abs(t),o=62+5.12/55*Math.abs(t),h=62+19.44/55*Math.abs(t)):a===A.Abyad?(i=75+25.6/55*Math.abs(t),s=75+7.16/55*Math.abs(t),o=75+36.84/55*Math.abs(t),h=75+1.488*Math.abs(t)):(i=75+25.6/55*Math.abs(t),s=75+2.05/55*Math.abs(t),o=75-9.21/55*Math.abs(t),h=75+6.14/55*Math.abs(t));var u,l=(u=j.daysSinceSolstice(e,n,t))<91?i+(s-i)/91*u:u<137?s+(o-s)/46*(u-91):u<183?o+(h-o)/46*(u-137):u<229?h+(o-h)/46*(u-183):u<275?o+(s-o)/46*(u-229):s+(i-s)/91*(u-275);return g(r,Math.round(60*l))},daysSinceSolstice:function(t,e,n){var r=0,a=j.isLeapYear(e)?173:172,i=j.isLeapYear(e)?366:365;return n>=0?(r=t+10,r>=i&&(r-=i)):(r=t-a,r<0&&(r+=i)),r}},y=i((function t(e){r(this,t);var n=j.julianCentury(e),a=j.meanSolarLongitude(n),i=j.meanLunarLongitude(n),s=j.ascendingLunarNodeLongitude(n),o=v(j.apparentSolarLongitude(n,a)),h=j.meanSiderealTime(n),u=j.nutationInLongitude(n,a,i,s),l=j.nutationInObliquity(n,a,i,s),d=j.meanObliquityOfTheEcliptic(n),c=v(j.apparentObliquityOfTheEcliptic(n,d));this.declination=p(Math.asin(Math.sin(c)*Math.sin(o))),this.rightAscension=w(p(Math.atan2(Math.cos(c)*Math.sin(o),Math.cos(o)))),this.apparentSiderealTime=h+3600*u*Math.cos(v(d+l))/3600})),T=function(){function t(e,n){r(this,t);var a=j.julianDay(e.getFullYear(),e.getMonth()+1,e.getDate(),0);this.observer=n,this.solar=new y(a),this.prevSolar=new y(a-1),this.nextSolar=new y(a+1);var i=j.approximateTransit(n.longitude,this.solar.apparentSiderealTime,this.solar.rightAscension),s=-50/60;this.approxTransit=i,this.transit=j.correctedTransit(i,n.longitude,this.solar.apparentSiderealTime,this.solar.rightAscension,this.prevSolar.rightAscension,this.nextSolar.rightAscension),this.sunrise=j.correctedHourAngle(i,s,n,!1,this.solar.apparentSiderealTime,this.solar.rightAscension,this.prevSolar.rightAscension,this.nextSolar.rightAscension,this.solar.declination,this.prevSolar.declination,this.nextSolar.declination),this.sunset=j.correctedHourAngle(i,s,n,!0,this.solar.apparentSiderealTime,this.solar.rightAscension,this.prevSolar.rightAscension,this.nextSolar.rightAscension,this.solar.declination,this.prevSolar.declination,this.nextSolar.declination)}return i(t,[{key:"hourAngle",value:function(t,e){return j.correctedHourAngle(this.approxTransit,t,this.observer,e,this.solar.apparentSiderealTime,this.solar.rightAscension,this.prevSolar.rightAscension,this.nextSolar.rightAscension,this.solar.declination,this.prevSolar.declination,this.nextSolar.declination)}},{key:"afternoon",value:function(t){var e=Math.abs(this.observer.latitude-this.solar.declination),n=t+Math.tan(v(e)),r=p(Math.atan(1/n));return this.hourAngle(r,!0)}}]),t}(),S={AqrabBalad:"AqrabBalad",AqrabYaum:"AqrabYaum",Unresolved:"Unresolved"},O=function(t){return!isNaN(t.sunrise)&&!isNaN(t.sunset)},D=function t(e,n){var r=arguments.length>2&&void 0!==arguments[2]?arguments[2]:1,a=arguments.length>3&&void 0!==arguments[3]?arguments[3]:1;if(r>Math.ceil(182.5))return null;var i=new Date(n.getTime());i.setDate(i.getDate()+a*r);var s=d(i,1),o=new T(i,e),h=new T(s,e);return O(o)&&O(h)?{date:n,tomorrow:s,coordinates:e,solarTime:o,tomorrowSolarTime:h}:t(e,n,r+(a>0?0:1),-a)},N=function t(e,r,a){var i=new T(r,n(n({},e),{},{latitude:a})),s=d(r,1),o=new T(s,n(n({},e),{},{latitude:a}));return O(i)&&O(o)?{date:r,tomorrow:s,coordinates:new u(a,e.longitude),solarTime:i,tomorrowSolarTime:o}:Math.abs(a)>=65?t(e,r,a-.5*Math.sign(a)):null},P=function(t,e,n){var r={date:e,tomorrow:d(e,1),coordinates:n,solarTime:new T(e,n),tomorrowSolarTime:new T(d(e,1),n)};switch(t){case S.AqrabYaum:return D(n,e)||r;case S.AqrabBalad:var a=n.latitude;return N(n,e,a-.5*Math.sign(a))||r;default:return r}},L=function(){function t(e){var n=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,a=arguments.length>2&&void 0!==arguments[2]?arguments[2]:0,i=arguments.length>3&&void 0!==arguments[3]?arguments[3]:0,u=arguments.length>4&&void 0!==arguments[4]?arguments[4]:0;r(this,t),s(this,"madhab",o.Shafi),s(this,"highLatitudeRule",h.MiddleOfTheNight),s(this,"adjustments",{fajr:0,sunrise:0,dhuhr:0,asr:0,maghrib:0,isha:0}),s(this,"methodAdjustments",{fajr:0,sunrise:0,dhuhr:0,asr:0,maghrib:0,isha:0}),s(this,"polarCircleResolution",S.Unresolved),s(this,"rounding",l.Nearest),s(this,"shafaq",A.General),this.method=e,this.fajrAngle=n,this.ishaAngle=a,this.ishaInterval=i,this.maghribAngle=u,null===this.method&&(this.method="Other")}return i(t,[{key:"nightPortions",value:function(){switch(this.highLatitudeRule){case h.MiddleOfTheNight:return{fajr:.5,isha:.5};case h.SeventhOfTheNight:return{fajr:1/7,isha:1/7};case h.TwilightAngle:return{fajr:this.fajrAngle/60,isha:this.ishaAngle/60};default:throw"Invalid high latitude rule found when attempting to compute night portions: ".concat(this.highLatitudeRule)}}}]),t}(),C={MuslimWorldLeague:function(){var t=new L("MuslimWorldLeague",18,17);return t.methodAdjustments.dhuhr=1,t},Egyptian:function(){var t=new L("Egyptian",19.5,17.5);return t.methodAdjustments.dhuhr=1,t},Karachi:function(){var t=new L("Karachi",18,18);return t.methodAdjustments.dhuhr=1,t},UmmAlQura:function(){return new L("UmmAlQura",18.5,0,90)},Dubai:function(){var t=new L("Dubai",18.2,18.2);return t.methodAdjustments=n(n({},t.methodAdjustments),{},{sunrise:-3,dhuhr:3,asr:3,maghrib:3}),t},MoonsightingCommittee:function(){var t=new L("MoonsightingCommittee",18,18);return t.methodAdjustments=n(n({},t.methodAdjustments),{},{dhuhr:5,maghrib:3}),t},NorthAmerica:function(){var t=new L("NorthAmerica",15,15);return t.methodAdjustments.dhuhr=1,t},Kuwait:function(){return new L("Kuwait",18,17.5)},Qatar:function(){return new L("Qatar",18,0,90)},Singapore:function(){var t=new L("Singapore",20,18);return t.methodAdjustments.dhuhr=1,t.rounding=l.Up,t},Tehran:function(){return new L("Tehran",17.7,14,0,4.5)},Turkey:function(){var t=new L("Turkey",18,17);return t.methodAdjustments=n(n({},t.methodAdjustments),{},{sunrise:-7,dhuhr:5,asr:4,maghrib:7}),t},Other:function(){return new L("Other",0,0)}},Y={Fajr:"fajr",Sunrise:"sunrise",Dhuhr:"dhuhr",Asr:"asr",Maghrib:"maghrib",Isha:"isha",None:"none"},F=function(){function t(e){return r(this,t),this.hours=Math.floor(e),this.minutes=Math.floor(60*(e-this.hours)),this.seconds=Math.floor(60*(e-(this.hours+this.minutes/60))*60),this}return i(t,[{key:"utcDate",value:function(t,e,n){return new Date(Date.UTC(t,e,n,this.hours,this.minutes,this.seconds))}}]),t}(),q=function(){function t(e,n,a){r(this,t),this.coordinates=e,this.date=n,this.calculationParameters=a;var i,s,h,u,l,v,p,b=new T(n,e);h=new F(b.transit).utcDate(n.getFullYear(),n.getMonth(),n.getDate()),s=new F(b.sunrise).utcDate(n.getFullYear(),n.getMonth(),n.getDate()),l=new F(b.sunset).utcDate(n.getFullYear(),n.getMonth(),n.getDate());var w=d(n,1),A=new T(w,e),y=a.polarCircleResolution;if((!M(s)||!M(l)||isNaN(A.sunrise))&&y!==S.Unresolved){var O,D,N,L=P(y,n,e);b=L.solarTime,A=L.tomorrowSolarTime;var C=[n.getFullYear(),n.getMonth(),n.getDate()];h=(O=new F(b.transit)).utcDate.apply(O,C),s=(D=new F(b.sunrise)).utcDate.apply(D,C),l=(N=new F(b.sunset)).utcDate.apply(N,C)}u=new F(b.afternoon(function(t){switch(t){case o.Shafi:return 1;case o.Hanafi:return 2;default:throw"Invalid Madhab"}}(a.madhab))).utcDate(n.getFullYear(),n.getMonth(),n.getDate());var Y=new F(A.sunrise).utcDate(w.getFullYear(),w.getMonth(),w.getDate()),q=(Number(Y)-Number(l))/1e3;i=new F(b.hourAngle(-1*a.fajrAngle,!1)).utcDate(n.getFullYear(),n.getMonth(),n.getDate()),"MoonsightingCommittee"===a.method&&e.latitude>=55&&(i=g(s,-(q/7)));var x=function(){if("MoonsightingCommittee"===a.method)return j.seasonAdjustedMorningTwilight(e.latitude,m(n),n.getFullYear(),s);var t=a.nightPortions().fajr;return g(s,-(t*q))}();if((isNaN(i.getTime())||x>i)&&(i=x),a.ishaInterval>0)p=c(l,a.ishaInterval);else{p=new F(b.hourAngle(-1*a.ishaAngle,!0)).utcDate(n.getFullYear(),n.getMonth(),n.getDate()),"MoonsightingCommittee"===a.method&&e.latitude>=55&&(p=g(l,q/7));var I=function(){if("MoonsightingCommittee"===a.method)return j.seasonAdjustedEveningTwilight(e.latitude,m(n),n.getFullYear(),l,a.shafaq);var t=a.nightPortions().isha;return g(l,t*q)}();(isNaN(p.getTime())||I<p)&&(p=I)}if(v=l,a.maghribAngle){var E=new F(b.hourAngle(-1*a.maghribAngle,!0)).utcDate(n.getFullYear(),n.getMonth(),n.getDate());l<E&&p>E&&(v=E)}var k=(a.adjustments.fajr||0)+(a.methodAdjustments.fajr||0),U=(a.adjustments.sunrise||0)+(a.methodAdjustments.sunrise||0),H=(a.adjustments.dhuhr||0)+(a.methodAdjustments.dhuhr||0),R=(a.adjustments.asr||0)+(a.methodAdjustments.asr||0),B=(a.adjustments.maghrib||0)+(a.methodAdjustments.maghrib||0),Q=(a.adjustments.isha||0)+(a.methodAdjustments.isha||0);this.fajr=f(c(i,k),a.rounding),this.sunrise=f(c(s,U),a.rounding),this.dhuhr=f(c(h,H),a.rounding),this.asr=f(c(u,R),a.rounding),this.sunset=f(l,a.rounding),this.maghrib=f(c(v,B),a.rounding),this.isha=f(c(p,Q),a.rounding)}return i(t,[{key:"timeForPrayer",value:function(t){return t===Y.Fajr?this.fajr:t===Y.Sunrise?this.sunrise:t===Y.Dhuhr?this.dhuhr:t===Y.Asr?this.asr:t===Y.Maghrib?this.maghrib:t===Y.Isha?this.isha:null}},{key:"currentPrayer",value:function(){var t=arguments.length>0&&void 0!==arguments[0]?arguments[0]:new Date;return t>=this.isha?Y.Isha:t>=this.maghrib?Y.Maghrib:t>=this.asr?Y.Asr:t>=this.dhuhr?Y.Dhuhr:t>=this.sunrise?Y.Sunrise:t>=this.fajr?Y.Fajr:Y.None}},{key:"nextPrayer",value:function(){var t=arguments.length>0&&void 0!==arguments[0]?arguments[0]:new Date;return t>=this.isha?Y.None:t>=this.maghrib?Y.Isha:t>=this.asr?Y.Maghrib:t>=this.dhuhr?Y.Asr:t>=this.sunrise?Y.Dhuhr:t>=this.fajr?Y.Sunrise:Y.Fajr}}]),t}();var x=i((function t(e){r(this,t);var n=d(e.date,1),a=(new q(e.coordinates,n,e.calculationParameters).fajr.getTime()-e.maghrib.getTime())/1e3;this.middleOfTheNight=f(g(e.maghrib,a/2)),this.lastThirdOfTheNight=f(g(e.maghrib,a*(2/3)))}));t.CalculationMethod=C,t.CalculationParameters=L,t.Coordinates=u,t.HighLatitudeRule=h,t.Madhab=o,t.PolarCircleResolution=S,t.Prayer=Y,t.PrayerTimes=q,t.Qibla=function(t){var e=new u(21.4225241,39.8261818),n=Math.sin(v(e.longitude)-v(t.longitude)),r=Math.cos(v(t.latitude))*Math.tan(v(e.latitude)),a=Math.sin(v(t.latitude))*Math.cos(v(e.longitude)-v(t.longitude));return w(p(Math.atan2(n,r-a)))},t.Rounding=l,t.Shafaq=A,t.SunnahTimes=x,Object.defineProperty(t,"__esModule",{value:!0})}));
@@ -238,27 +188,6 @@ const svg = (k, sw = 1.7) => `<svg viewBox="0 0 24 24" fill="none" stroke="curre
 // the crescent beside a clear night, drawn filled like the photo's moon
 const WX_MOON = '<svg viewBox="0 0 48 48"><path fill="#fff6d6" d="M34 30A15 15 0 1 1 18 8a12 12 0 0 0 16 22z"/><path fill="#fff6d6" d="M38 9l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1zM31 4l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z"/></svg>';
 const WX_SUN = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9" fill="#ffe27a"/><g stroke="#ffe27a" stroke-width="3" stroke-linecap="round"><path d="M24 5v5M24 38v5M5 24h5M38 24h5M10.6 10.6l3.5 3.5M33.9 33.9l3.5 3.5M10.6 37.4l3.5-3.5M33.9 14.1l3.5-3.5"/></g></svg>';
-
-// ---------------------------------------------------------------- stars
-(function(){
-  const box = document.getElementById('stars');
-  let seed = 7;
-  const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
-  for(let i = 0; i < 60; i++){
-    const s = document.createElement('i');
-    s.className = 'star';
-    // keep them out of the cards' way: mostly the sky band at the top and the middle
-    let x, y;
-    do { x = rnd() * 100; y = rnd() * 46; } while (x < 39 && y > 13);   // not behind the weather and prayer cards
-    s.style.left = x + '%';
-    s.style.top = y + 'vh';
-    const z = .08 + rnd() * .14;
-    s.style.width = s.style.height = z + 'vw';
-    s.style.animationDelay = (-rnd() * 4) + 's';
-    s.style.animationDuration = (3 + rnd() * 4) + 's';
-    box.appendChild(s);
-  }
-})();
 
 // ---------------------------------------------------------------- clock and dates
 function tickClock(){
@@ -317,20 +246,6 @@ function tickPrayers(){
   const h = Math.floor(mins / 60), m = mins % 60;
   const left = h ? `${AR(h)} س و ${AR(m)} د` : `${AR(m)} د`;
   document.getElementById('pr-left').innerHTML = `${tname} بعد <b class="num">${left}</b>`;
-  setSky(pt, n);
-}
-
-// ---------------------------------------------------------------- the sky follows the day
-function setSky(pt, n){
-  const min = 60000;
-  const t = k => pt[k].getTime();
-  let sky = 'night';
-  if(n >= t('fajr') && n < t('sunrise') + 25 * min) sky = 'dawn';
-  else if(n >= t('sunrise') + 25 * min && n < t('asr')) sky = 'day';
-  else if(n >= t('asr') && n < t('maghrib') - 35 * min) sky = 'afternoon';
-  else if(n >= t('maghrib') - 35 * min && n < t('maghrib') + 20 * min) sky = 'sunset';
-  else if(n >= t('maghrib') + 20 * min && n < t('isha') + 30 * min) sky = 'dusk';
-  if(document.body.dataset.sky !== sky) document.body.dataset.sky = sky;
 }
 
 // ---------------------------------------------------------------- weather (Open-Meteo, no key)
@@ -380,8 +295,8 @@ async function loadWeather(){
   }
 }
 
-// ---------------------------------------------------------------- hadith, three at a time
-const PER = 3, PAGE_MS = 30000;
+// ---------------------------------------------------------------- hadith, one at a time
+const PAGE_MS = 45000;
 let order = [], page = 0;
 function shuffleForToday(){
   const p = parts(now(), {year:'numeric', month:'numeric', day:'numeric'});
@@ -395,20 +310,11 @@ function shuffleForToday(){
   page = 0;
 }
 function showHadith(){
-  const row = document.getElementById('hrow');
   if(!HADITH.length){ document.getElementById('hadith').hidden = true; return; }
-  const pages = Math.ceil(order.length / PER);
-  const pick = order.slice(page * PER, page * PER + PER);
-  row.innerHTML = pick.map((k, i) => {
-    const h = HADITH[k];
-    return `<article class="h in" style="animation-delay:${i * 90}ms"><div class="who">قال رسول الله ﷺ</div>`
-      + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
-  }).join('');
-  // five dots: where this page sits in a window of five
-  const dots = document.getElementById('dots');
-  const on = page % 5;
-  dots.innerHTML = Array.from({length: Math.min(5, pages)}, (_, i) => `<i class="${i === on ? 'on' : ''}"></i>`).join('');
-  page = (page + 1) % pages;
+  const h = HADITH[order[page]];
+  document.getElementById('hrow').innerHTML = `<article class="h in"><div class="who">قال رسول الله ﷺ</div>`
+    + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
+  page = (page + 1) % order.length;
 }
 
 // ---------------------------------------------------------------- start

@@ -205,7 +205,7 @@ def hadith_for_screen():
     return out
 
 
-HOME_MAX_WORDS = 18   # a card on the home screen holds three lines
+HOME_MAX_WORDS = 18   # the home screen's card holds two lines
 SAID = re.compile("ﷺ" + "\\s*(?:" + HARAKAT.join("قال") + HARAKAT + "|" + HARAKAT.join("يقول") + HARAKAT + ")?\\s*[:،,]?\\s*$")
 
 
@@ -230,7 +230,7 @@ HOME_SKIP = (
 
 
 def hadith_for_home():
-    """The home screen's row: only al-Bukhari and Muslim, only the Prophet's own words, and only where the
+    """The home screen's hadith: only al-Bukhari and Muslim, only the Prophet's own words, and only where the
     narration before them is just «قال النبي ﷺ» (no story the words would need), short enough for a card."""
     out, seen = [], set()
     for h in hadith_for_screen():
