@@ -128,6 +128,12 @@
   .week li.quote.hadith{font-size:clamp(15px,1.3vw,25px);line-height:1.7}
   .week li.quote .nar{font-size:.66em;color:#B9AE96}
   .week li.quote .nar .saw{font-size:1.45em}
+  /* the second heading in the verse card: «حديث اليوم» under the verse, drawn like the card's own heading */
+  /* two quotes in one card: a little tighter, so the pair stays under 42% of the screen */
+  .week li.quote:has(~ .hd2),.week li.hd2 ~ .quote{line-height:1.62}
+  .week li.hd2{display:flex;align-items:center;gap:.7em;border-bottom:none;padding:1.1vh 0 0;
+    font-size:clamp(12px,1vw,18px);font-weight:500;letter-spacing:.18em;color:#D6AF6B}
+  .week li.hd2::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(220,184,111,.5),transparent)}
   .week li.src{border-bottom:none;padding:.6vh 0 0;font-size:clamp(12px,.95vw,18px);color:#D6AF6B}
   .week .empty{color:#9A9078;font-size:clamp(14px,1.1vw,21px);font-weight:300;margin-top:1vh}
 
@@ -249,6 +255,11 @@
   .no-matches .p-match{display:none}
   .no-matches .bottom{grid-template-columns:1fr 1.5fr}
   .no-matches .p-mid,.no-matches .p-mid .big{text-align:left}
+  /* and without the next prayer too: the dhikr alone, centred */
+  .no-next .p-prayer{display:none}
+  .no-next .bottom{grid-template-columns:1fr 1.5fr}
+  .no-matches.no-next .bottom{grid-template-columns:1fr}
+  .no-matches.no-next .p-mid,.no-matches.no-next .p-mid .big{text-align:center}
 
   @media (max-aspect-ratio:5/4){
     .top{flex-direction:column-reverse;gap:1.4vh}
@@ -348,6 +359,8 @@ const CONFIG = {
   // the card beside the clock: shows | prayers | forecast | matches | verse | none (#week=0 from older builds = none)
   // the matches panel in the bottom row: off unless #matches=1 (the card beside the clock can still show them)
   matchRow: _Q.get('matches') === '1',
+  // the next prayer in the bottom row: off unless #nextprayer=1
+  prayerRow: _Q.get('nextprayer') === '1',
   panel: (p => ['shows','prayers','forecast','matches','verse','none'].includes(p) ? p : 'verse')
          (_Q.get('panel') || (_Q.get('week') === '0' ? 'none' : 'verse')),
   matchesPerPage: 2,
@@ -369,6 +382,7 @@ const CONFIG = {
   widget: _Q.get('widget') === '1',
 };
 if(!CONFIG.matchRow) document.documentElement.classList.add('no-matches');
+if(!CONFIG.prayerRow) document.documentElement.classList.add('no-next');
 
 const GREG = 'ar-SA-u-ca-gregory-nu-arab';
 const AR = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
@@ -1069,21 +1083,29 @@ function matchRows(){
     });
 }
 
-// verse one day, hadith the next. Verse texts come from the Quran API via CI (.github/tools/fetch_verses.py), never typed.
+// the verse of the day and, under it, the hadith of the day. Verse texts come from the Quran API via CI
+// (.github/tools/fetch_verses.py), never typed; the full lists stay for the checks in tests/check.py.
 const VERSES = __VERSES__;   // assets/shared/verses.json
 // hadith: only those .github/tools/verify_hadith.py found in the six books, each shown in full as the book has it,
 // isnad and all: parts are ["n", narration] and ["q", the Prophet's words]; source is the book and its number
 const HADITH = __HADITH__;   // assets/shared/hadith.json, through src/build.py
+// what the card shows, stacked: short verses, and short sayings of the Prophet from al-Bukhari and Muslim
+// (the same list as the home screen, see hadith_for_home() in src/build.py)
+const VERSES_SHORT = VERSES.filter(v => v.text.split(/\s+/).length <= 20);   // VERSE_SHORT_WORDS in src/build.py
+const HADITH_SHORT = __HADITH_SHORT__;
 function quoteOfDay(){
-  const n = riyadhDayNumber(), half = Math.floor(n / 2);
-  if(VERSES.length && n % 2 === 0){
-    const v = VERSES[half % VERSES.length];
-    return {title:'آية اليوم', rows:[`<li class="quote"><span class="orn">﴿</span>${esc(v.text)}<span class="orn">﴾</span></li>`, `<li class="src">${esc(v.surah)} · ${ar(v.ayah)}</li>`]};
-  }
-  const h = HADITH[half % HADITH.length];
+  const n = riyadhDayNumber(), rows = [];
   const saw = s => s.replace(/ﷺ/g, '<span class="saw">ﷺ</span>').replace(/[﴿﴾]/g, m => `<span class="orn">${m}</span>`);
-  const body = h.parts.map(([k, t]) => k === 'q' ? `«${saw(esc(t))}»` : `<span class="nar">${saw(esc(t))}</span>`).join(' ');
-  return {title:'حديث اليوم', rows:[`<li class="quote hadith">${body}</li>`, `<li class="src">${esc(h.source)}</li>`]};
+  if(VERSES_SHORT.length){
+    const v = VERSES_SHORT[n % VERSES_SHORT.length];
+    rows.push(`<li class="quote"><span class="orn">﴿</span>${esc(v.text)}<span class="orn">﴾</span></li>`, `<li class="src">${esc(v.surah)} · ${ar(v.ayah)}</li>`);
+  }
+  if(HADITH_SHORT.length){
+    const h = HADITH_SHORT[n % HADITH_SHORT.length];
+    if(rows.length) rows.push('<li class="hd2">حديث اليوم</li>');
+    rows.push(`<li class="quote hadith">${saw('قال رسول الله ﷺ')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
+  }
+  return {title: VERSES_SHORT.length ? 'آية اليوم' : 'حديث اليوم', rows};
 }
 
 const WX_CODES = {

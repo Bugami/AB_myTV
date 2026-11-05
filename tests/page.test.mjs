@@ -77,25 +77,25 @@ const SAMPLE = {
   },
 };
 const EXPECT = { prayers: [6, 'مواقيت اليوم'], forecast: [5, 'الأيام القادمة'], matches: [2, 'مباريات فرقك'],
-                 verse: [2, null], shows: [1, 'هذا الأسبوع'] };
+                 verse: [5, 'آية اليوم'], shows: [1, 'هذا الأسبوع'] };
 for (const [panel, [rows, title]] of Object.entries(EXPECT)) {
   const { p, ctx, errors } = await open('tv.html', 'teams=136013&panel=' + panel);
   if (SAMPLE[panel]) await p.evaluate(`(${SAMPLE[panel]})(); renderPanel(false);`);
   const r = await p.evaluate(() => ({ n: document.querySelectorAll('#week-list li').length,
     hd: document.getElementById('week-hd').textContent, shown: getComputedStyle(document.querySelector('.week')).display !== 'none' }));
   check(`card ${panel}: no errors`, !errors.length, errors.join('; '));
-  check(`card ${panel}: ${rows} rows, title right`, r.shown && r.n === rows && (!title || r.hd === title)
-    && (title || ['آية اليوم', 'حديث اليوم'].includes(r.hd)), JSON.stringify(r));
+  check(`card ${panel}: ${rows} rows, title right`, r.shown && r.n === rows && r.hd === title, JSON.stringify(r));
   await ctx.close();
 }
 {
   const { p, ctx } = await open('tv.html', 'panel=verse');
   const both = await p.evaluate(() => {
-    const day = riyadhDayNumber, out = [];
-    for (const k of [0, 1]) { window.riyadhDayNumber = () => day() + k; out.push(quoteOfDay().title); }
-    return out.sort().join(',');
+    renderPanel(false);
+    const li = [...document.querySelectorAll('#week-list li')];
+    return [document.getElementById('week-hd').textContent, li.filter(x => x.classList.contains('quote')).length,
+            li.some(x => x.classList.contains('hd2') && x.textContent === 'حديث اليوم')].join(',');
   });
-  check('card verse: a verse one day, a hadith the next', both === 'آية اليوم,حديث اليوم', both);
+  check('card verse: the verse of the day, and under it the hadith of the day', both === 'آية اليوم,2,true', both);
   await ctx.close();
 }
 
@@ -104,7 +104,7 @@ for (const [width, height] of [[1920, 1080], [1280, 720], [960, 540]]) {
   const { p, ctx, errors } = await open('tv.html', 'panel=verse', { width, height });
   const r = await p.evaluate(() => {
     const day = riyadhDayNumber(), card = document.querySelector('.week'), bad = [];
-    const days = 2 * Math.max(VERSES.length, HADITH.length);   // a verse on even days, a hadith on odd: all of both
+    const days = Math.max(VERSES_SHORT.length, HADITH_SHORT.length);   // a verse and a hadith each day: all of both
     let tallest = 0;
     for (let k = 0; k < days; k++) {
       window.riyadhDayNumber = () => day + k;

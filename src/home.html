@@ -21,7 +21,7 @@
 
   /* layout: a 16:9 stage in vw/vh over the launcher's own photos (the screensaver's Saudi landscapes, a new one
      every 10 minutes): clock and dates top right, weather and prayer cards top left under the launcher's buttons,
-     one hadith in the middle, the bottom 30% left to the launcher's favourites. */
+     a verse and a hadith side by side in the middle, the bottom 30% left to the launcher's favourites. */
   :root{
     --glass:rgba(8,12,22,.46); --edge:rgba(255,255,255,.26); --ink:#ffffff; --ink2:rgba(255,255,255,.80);
     --accent:#ffd98a; --hl:rgba(255,255,255,.18);
@@ -79,19 +79,17 @@
   .wx-none #wx-main,.wx-none #wx-desc,.wx-none #wx-stats{display:none}
   .wx-none #wx-off{display:flex}
   /* prayers */
-  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.2vh;flex:1}
-  #prayers li{display:flex;align-items:center;gap:.7vw;padding:.45vh .7vw;border-radius:.6vw;font-size:1.28vw}
-  #prayers li svg{width:1.2vw;height:1.2vw;flex:none;opacity:.9}
+  #prayers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:space-around;flex:1}
+  #prayers li{display:flex;align-items:center;gap:.7vw;padding:.6vh .7vw;border-radius:.6vw;font-size:1.4vw}
+  #prayers li svg{width:1.3vw;height:1.3vw;flex:none;opacity:.9}
   #prayers li .n{flex:1}
   #prayers li .t{direction:rtl}
   #prayers li.next{background:var(--hl);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
   #prayers li.next .t,#prayers li.next .n{font-weight:500;color:var(--accent)}
   #prayers li.past{opacity:.6}
-  #pr-left{text-align:center;font-size:1.12vw;color:var(--ink2);padding-top:.8vh;border-top:1px solid rgba(255,255,255,.18)}
-  #pr-left b{color:var(--ink);font-weight:500}
 
-  /* ---------------------------------------------------------------- one hadith, in the middle */
-  #hadith{position:absolute;left:50%;top:50vh;transform:translateX(-50%);width:64vw}
+  /* ---------------------------------------------------------------- a verse and a hadith, side by side */
+  #quotes{position:absolute;left:5vw;right:5vw;top:50vh;display:grid;grid-template-columns:1fr 1fr;gap:1.4vw;align-items:stretch}
   .h{
     box-sizing:border-box;padding:1.5vh 2.4vw 1.4vh;border-radius:1.2vw;text-align:center;
     background:var(--glass);border:1px solid var(--edge);box-shadow:0 1vw 3vw rgba(0,0,0,.25);
@@ -99,10 +97,15 @@
   }
   .h .who{font-size:1.15vw;color:var(--accent);font-weight:500}
   .h .tx{
-    font-size:1.9vw;line-height:1.6;font-weight:400;min-width:0;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
+    font-size:1.75vw;line-height:1.6;font-weight:400;min-width:0;flex:1;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.15em;
   }
   .h .src{font-size:1vw;color:var(--ink2)}
+  /* Thmanyah draws ﴿﴾ as small angle marks: they come from the Marks subset */
+  .h .orn{font-family:'Marks',serif;color:var(--accent);padding:0 .12em;font-size:1.05em}
+  #vrow,#hrow{display:flex;min-width:0}
+  #vrow .h,#hrow .h{flex:1}
+  #hrow .h.in{animation-delay:.12s}
   .h.in{animation:rise .8s both}
   @keyframes rise{from{opacity:0;transform:translateY(1vh)}to{opacity:1;transform:none}}
 
@@ -122,7 +125,7 @@
 <section id="cards">
   <div class="block">
     <div class="hd">أوقات الصلاة</div>
-    <div class="card"><ul id="prayers"></ul><div id="pr-left"></div></div>
+    <div class="card"><ul id="prayers"></ul></div>
   </div>
   <div class="block">
     <div class="hd">الطقس</div>
@@ -140,7 +143,7 @@
   </div>
 </section>
 
-<section id="hadith"><div id="hrow"></div></section>
+<section id="quotes"><div id="vrow"></div><div id="hrow"></div></section>
 
 <script>
 __ADHAN_JS__
@@ -158,6 +161,7 @@ const FROZEN = Q.get('now') ? new Date(Q.get('now')) : null;
 const now = () => FROZEN ? new Date(FROZEN.getTime()) : new Date();
 
 const HADITH = __HADITH_HOME__;   // short sayings from al-Bukhari and Muslim, see src/build.py
+const VERSES = __VERSES_HOME__;   // short verses, from the Quran API via CI (.github/tools/fetch_verses.py)
 
 const AR = s => String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 const parts = (d, o) => Object.fromEntries(new Intl.DateTimeFormat('en-US', Object.assign({timeZone: CONFIG.tz}, o))
@@ -232,19 +236,8 @@ function tickPrayers(){
     const cls = i === next ? 'next' : (next === -1 || i < next) ? 'past' : '';
     return `<li class="${cls}">${svg(icon)}<span class="n">${label}</span><span class="t num">${t.t} ${t.ap}</span></li>`;
   }).join('');
-  // after Isha: tomorrow's Fajr
-  let target, tname;
-  if(next === -1){
-    const tm = timesFor(new Date(n + 86400000));
-    target = tm.fajr; tname = 'الفجر';
-    list.firstElementChild.classList.add('next');
-  } else {
-    target = pt[NAMES[next][0]]; tname = NAMES[next][0] === 'dhuhr' && isFriday(d) ? 'الجمعة' : NAMES[next][1];
-  }
-  const mins = Math.max(0, Math.round((target.getTime() - n) / 60000));
-  const h = Math.floor(mins / 60), m = mins % 60;
-  const left = h ? `${AR(h)} س و ${AR(m)} د` : `${AR(m)} د`;
-  document.getElementById('pr-left').innerHTML = `${tname} بعد <b class="num">${left}</b>`;
+  // after Isha: tomorrow's Fajr is next
+  if(next === -1) list.firstElementChild.classList.add('next');
 }
 
 // ---------------------------------------------------------------- weather (Open-Meteo, no key)
@@ -294,26 +287,39 @@ async function loadWeather(){
   }
 }
 
-// ---------------------------------------------------------------- hadith, one at a time
-const PAGE_MS = 45000;
-let order = [], page = 0;
-function shuffleForToday(){
-  const p = parts(now(), {year:'numeric', month:'numeric', day:'numeric'});
-  let seed = (+p.year * 400 + +p.month * 32 + +p.day) % 2147483646 + 1;
-  order = HADITH.map((_, i) => i);
-  for(let i = order.length - 1; i > 0; i--){
+// ---------------------------------------------------------------- a verse and a hadith, a new pair every minute
+const PAGE_MS = 60000;
+let vOrder = [], hOrder = [], page = 0;
+function shuffled(n, seed){
+  const o = Array.from({length: n}, (_, i) => i);
+  for(let i = n - 1; i > 0; i--){
     seed = (seed * 48271) % 2147483647;
     const j = seed % (i + 1);
-    [order[i], order[j]] = [order[j], order[i]];
+    [o[i], o[j]] = [o[j], o[i]];
   }
+  return o;
+}
+function shuffleForToday(){
+  const p = parts(now(), {year:'numeric', month:'numeric', day:'numeric'});
+  const seed = (+p.year * 400 + +p.month * 32 + +p.day) % 2147483646 + 1;
+  vOrder = shuffled(VERSES.length, seed);
+  hOrder = shuffled(HADITH.length, seed + 7);
   page = 0;
 }
-function showHadith(){
-  if(!HADITH.length){ document.getElementById('hadith').hidden = true; return; }
-  const h = HADITH[order[page]];
-  document.getElementById('hrow').innerHTML = `<article class="h in"><div class="who">قال رسول الله ﷺ</div>`
-    + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
-  page = (page + 1) % order.length;
+function showQuotes(){
+  if(VERSES.length){
+    const v = VERSES[vOrder[page % vOrder.length]];
+    document.getElementById('vrow').innerHTML = `<article class="h in"><div class="who">قال الله تعالى</div>`
+      + `<div class="tx"><span class="orn">﴿</span>${v.text}<span class="orn">﴾</span></div><div class="src">${v.surah} · ${AR(v.ayah)}</div></article>`;
+  }
+  if(HADITH.length){
+    const h = HADITH[hOrder[page % hOrder.length]];
+    document.getElementById('hrow').innerHTML = `<article class="h in"><div class="who">قال رسول الله ﷺ</div>`
+      + `<div class="tx">«${h.t}»</div><div class="src">${h.s}</div></article>`;
+  }
+  // only one of the two: it takes the whole row
+  document.getElementById('quotes').style.gridTemplateColumns = VERSES.length && HADITH.length ? '' : '1fr';
+  page++;
 }
 
 // ---------------------------------------------------------------- start
@@ -325,13 +331,13 @@ function everyMinute(){
   tickClock(); tickDates(); tickPrayers();
   const day = parts(now(), {year:'numeric', month:'numeric', day:'numeric'});
   const k = day.year + '-' + day.month + '-' + day.day;
-  if(k !== lastDay){ lastDay = k; shuffleForToday(); showHadith(); }
+  if(k !== lastDay){ lastDay = k; shuffleForToday(); showQuotes(); }
 }
 everyMinute();
 loadWeather();
 // on the minute, so the clock never lags behind the TV's own
 setTimeout(() => { everyMinute(); setInterval(everyMinute, 60000); }, 60000 - Date.now() % 60000 + 50);
-setInterval(showHadith, PAGE_MS);
+setInterval(showQuotes, PAGE_MS);
 setInterval(loadWeather, 30 * 60000);
 </script>
 </body>

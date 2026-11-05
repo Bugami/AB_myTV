@@ -251,6 +251,14 @@ def hadith_for_home():
     return out
 
 
+VERSE_SHORT_WORDS = 20   # a verse that shares its card with a hadith
+
+
+def verses_short():
+    """The verses short enough to sit beside or above a hadith: on the home screen and in the screensaver's card."""
+    return [v for v in verses_for_screen() if len(v["text"].split()) <= VERSE_SHORT_WORDS]
+
+
 def data_uri(path, mime):
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
@@ -272,6 +280,7 @@ def main():
     html = html.replace("__TEAMS_BY_ID__", js_json(by_id))
     html = html.replace("__VERSES__", js_json(verses_for_screen()))
     html = html.replace("__HADITH__", js_json(hadith_for_screen()))   # checked by CI
+    html = html.replace("__HADITH_SHORT__", js_json(hadith_for_home()))
     html = html.replace("__DHIKR__", (ROOT / "assets/shared/dhikr.json").read_text(encoding="utf-8").strip().replace("</", "<\\/"))
 
     bg_dir = ROOT / "assets/backgrounds"
@@ -297,6 +306,7 @@ def main():
         home = home.replace(token, REPO + "assets/fonts/" + font)
     home = home.replace("__ADHAN_JS__", (ROOT / "src/vendor/adhan.umd.min.js").read_text(encoding="utf-8").strip())
     home = home.replace("__HADITH_HOME__", js_json(hadith_for_home()))
+    home = home.replace("__VERSES_HOME__", js_json(verses_short()))
     out = ROOT / "dist/home.html"
     out.write_text(home, encoding="utf-8")
     print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size / 1e6:.2f} MB, {len(hadith_for_home())} hadith)")
