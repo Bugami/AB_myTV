@@ -113,8 +113,9 @@ for (const [width, height] of [[1920, 1080], [1280, 720], [960, 540]]) {
       const bar = document.querySelector('.bottom').getBoundingClientRect();
       tallest = Math.max(tallest, c.height);
       const top = document.querySelector('.top').getBoundingClientRect();
-      // a card beside the clock, not a page: clear of the top line, the clock and the bottom bar, at most 42% high
-      if (c.top < top.bottom || c.bottom > bar.top - 4 || c.right > clock.left - 4 || c.height > 0.42 * innerHeight)
+      // a card beside the clock, not a page: clear of the top line, the clock and the bottom bar, at most half the
+      // screen high (a verse and a hadith, one under the other)
+      if (c.top < top.bottom || c.bottom > bar.top - 4 || c.right > clock.left - 4 || c.height > 0.5 * innerHeight)
         bad.push(`${Math.round(c.top)}-${Math.round(c.bottom)}/${Math.round(bar.top)} ` + card.querySelector('.quote').textContent.slice(0, 40));
     }
     return { days, bad, tallest: Math.round(tallest) };
@@ -180,7 +181,7 @@ for (const panel of ['prayers', 'verse', 'shows']) {
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   await ctx.route(/^https?:/, r => r.abort());
   const p = await ctx.newPage();
-  await p.goto(page('tv.html') + '#teams=136013');
+  await p.goto(page('tv.html') + '#teams=136013&markets=1');
   await p.waitForTimeout(800);
   await p.evaluate(() => {
     document.getElementById('wx-temp').textContent = '٣٨°';

@@ -343,7 +343,8 @@ public class MainActivity extends Activity {
         settings.setOnClickListener(v -> launch(new Intent(Settings.ACTION_SETTINGS)));
         for (TextView p : isInstalled(SAVER_PKG) ? new TextView[]{inputs, wifiPill, settings, saver}
                                                   : new TextView[]{inputs, wifiPill, settings}) {
-            right.addView(p, llp(-2, dp(30), dp(10), 0, 0, 0));
+            // with the page: round icon buttons; the name is read out by TalkBack (contentDescription)
+            right.addView(p, withPage ? llp(dp(40), dp(40), dp(12), 0, 0, 0) : llp(-2, dp(30), dp(10), 0, 0, 0));
             pills.add(p);
         }
         header.addView(right, new FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.TOP));
@@ -353,18 +354,25 @@ public class MainActivity extends Activity {
     /** Pill button: label with a Material icon on its right (Arabic reading order), tinted with the text. */
     private TextView pill(String label, int icon) {
         TextView p = text(12, "sans-serif-medium", 0xE6FFFFFF);
-        p.setText(label);
         p.setGravity(Gravity.CENTER);
         android.graphics.drawable.Drawable ic = getDrawable(icon).mutate();
-        ic.setBounds(0, 0, dp(16), dp(16));
         ic.setTint(0xE6FFFFFF);
-        p.setCompoundDrawables(null, null, ic, null);
-        p.setCompoundDrawablePadding(dp(8));
-        p.setPadding(dp(14), 0, dp(14), 0);
+        if (withPage) {   // icon only, centred in a 40dp circle
+            ic.setBounds(0, 0, dp(20), dp(20));
+            p.setCompoundDrawables(ic, null, null, null);
+            p.setPadding(dp(10), 0, dp(10), 0);
+            p.setContentDescription(label);
+        } else {
+            p.setText(label);
+            ic.setBounds(0, 0, dp(16), dp(16));
+            p.setCompoundDrawables(null, null, ic, null);
+            p.setCompoundDrawablePadding(dp(8));
+            p.setPadding(dp(14), 0, dp(14), 0);
+        }
         p.setFocusable(true);
         p.setId(View.generateViewId());
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(15));
+        bg.setCornerRadius(dp(withPage ? 20 : 15));
         bg.setColor(0x66000000);
         bg.setStroke(dp(1), 0x33FFFFFF);
         p.setBackground(bg);
@@ -788,7 +796,12 @@ public class MainActivity extends Activity {
                 if (s != null && !s.contains("unknown ssid") && !s.replace("\"", "").isEmpty()) name = s.replace("\"", "");
             }
         } catch (SecurityException ignored) { }
-        wifiPill.setText(name);
+        if (withPage) {   // no words on the button: dimmed when there is no network
+            wifiPill.setContentDescription(name);
+            wifiPill.setAlpha("غير متصل".equals(name) ? 0.5f : 1f);
+        } else {
+            wifiPill.setText(name);
+        }
     }
 
     // ---------------------------------------------------------------- glow
