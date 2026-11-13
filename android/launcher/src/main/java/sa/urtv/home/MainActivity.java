@@ -568,10 +568,10 @@ public class MainActivity extends Activity {
             @Override public void focus(View target, String which, boolean has) {
                 if (!has) return;
                 lastFocusedId = target.getId(); glideTo(0); fadeGlow(1f);
-                lowerTray(FootballFocus.MT.equals(which));   // the games open into a row: the tray makes room, the other widgets need none
+                lowerTray(false);   // Bugami/AB_myTV: the wide card holds a verse and a hadith and never opens into a row
             }
             @Override public void open(String which, String eventId) {
-                if (cleanShown && FootballFocus.MT.equals(which)) return;   // «UrTV النظيف»: no way into the games page
+                if (FootballFocus.MT.equals(which)) return;   // Bugami/AB_myTV: the verse and hadith card has nothing to open
                 if (FootballFocus.MT.equals(which)) {
                     Intent games = new Intent(MainActivity.this, MatchesActivity.class).putExtra(MatchesActivity.EXTRA_EVENT, eventId);
                     guarded(ParentalPolicy.WIDGET_MATCHES, null, S.t("المباريات"), () -> launch(games));   // our own page: no app of the lists
@@ -3251,7 +3251,7 @@ public class MainActivity extends Activity {
 
     // Hosted photos (photos/index.json in the repo) join the bundled ones. Each is downloaded once into
     // files/photos and reused; offline or on any failure the next bundled photo is shown instead.
-    static final String PHOTO_BASE = "https://raw.githubusercontent.com/tshi-dev/UrTV/master/photos/";
+    static final String PHOTO_BASE = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/photos/";
     static final long INDEX_MAX_AGE_MS = 24 * 3600 * 1000L;
 
     static final int PHOTO_SET = 5, PHOTO_PERIOD_DAYS = 4;

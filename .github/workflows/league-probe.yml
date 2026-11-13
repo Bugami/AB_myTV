@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   probe:
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

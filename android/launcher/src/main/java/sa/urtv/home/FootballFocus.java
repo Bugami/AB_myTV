@@ -45,7 +45,7 @@ final class FootballFocus {
         this.web = web;
         this.webParams = webParams;
         this.host = host;
-        String[] names = {S.t("الطقس"), S.t("أوقات الصلاة"), S.t("مباريات اليوم")};
+        String[] names = {S.t("الطقس"), S.t("أوقات الصلاة"), S.t("آية وحديث")};   // Bugami/AB_myTV: a verse and a hadith, not the games
         for (int i = 0; i < KEYS.length; i++) {
             final String key = KEYS[i];
             View t = new View(activity);

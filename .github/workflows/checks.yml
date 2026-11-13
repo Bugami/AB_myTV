@@ -11,20 +11,19 @@ on:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04 now, where Playwright 1.56 has no Chromium build
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # Thmanyah's licence allows its files only inside a built product: they live in the private
-      # tshi-dev/urtv-fonts and are put in place here, never committed to this repository
-      - uses: actions/checkout@v4
-        with:
-          repository: tshi-dev/urtv-fonts
-          token: ${{ secrets.FONTS_TOKEN }}
-          path: .fonts-private
+      # Thmanyah's licence allows its files only inside a built product, never hosted: this repository keeps them
+      # encrypted (.github/signing/fonts.tar.enc, the same password as the signing key) and they are opened only here
       - name: Private fonts
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          mkdir -p .fonts-private android/launcher/src/main/assets/fonts
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .github/signing/fonts.tar.enc -pass env:KEYSTORE_PASSWORD | tar x -C .fonts-private
           cp .fonts-private/web/*.woff2 assets/fonts/
-          mkdir -p android/launcher/src/main/assets/fonts
           cp .fonts-private/android/*.otf android/launcher/src/main/assets/fonts/
           rm -rf .fonts-private
       - uses: actions/setup-node@v4

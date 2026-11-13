@@ -69,7 +69,7 @@ final class HomeCard {
         }
     }
 
-    private static final String FONTS = "https://raw.githubusercontent.com/tshi-dev/UrTV/master/assets/fonts/";
+    private static final String FONTS = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/assets/fonts/";
 
     /** Sent inside the app when the cards were changed from the phone: the home screen in front follows at once. */
     static final String CHANGED = "sa.urtv.home.CARDS_CHANGED";

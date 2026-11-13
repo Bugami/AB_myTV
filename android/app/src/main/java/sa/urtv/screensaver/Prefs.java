@@ -379,7 +379,7 @@ final class Prefs {
     void setMarkets(List<String> v) { setList("markets", v); }
 
     /** The markets line at the top (default on); off hides it and the page asks for nothing for it. The list above is kept. */
-    boolean marketsOn() { return sp.getBoolean("marketsOn", true); }
+    boolean marketsOn() { return sp.getBoolean("marketsOn", false); }   // Bugami/AB_myTV: off unless turned on
     void setMarketsOn(boolean v) { sp.edit().putBoolean("marketsOn", v).apply(); }
 
     String clockSize() {
@@ -420,7 +420,7 @@ final class Prefs {
         return CARD_STYLES[0][1];
     }
 
-    String slot() { return sp.getString("slot", "matches"); }
+    String slot() { return sp.getString("slot", "none"); }   // Bugami/AB_myTV: the bottom-left empty unless chosen
     void setSlot(String v) { sp.edit().putString("slot", v).apply(); }
 
     static String slotLabel(String v) {
@@ -1024,7 +1024,8 @@ final class Prefs {
     /** «المظهر ← الواجهة»: the home's layout, classic (the default, the home as it always was) or football (docs/PROPOSALS-NOV2.md §1) */
     static final String[] HOME_LAYOUTS = {"classic", "football"};
     static final String[] HOME_LAYOUT_NAMES = {"العادية", "كرة القدم"};
-    String homeLayout() { String v = sp.getString("homeLayout", HOME_LAYOUTS[0]); return java.util.Arrays.asList(HOME_LAYOUTS).contains(v) ? v : HOME_LAYOUTS[0]; }
+    String homeLayout() { String v = sp.getString("homeLayout", HOME_LAYOUTS[1]);   // Bugami/AB_myTV: the football home (its games card holds a verse and a hadith)
+        return java.util.Arrays.asList(HOME_LAYOUTS).contains(v) ? v : HOME_LAYOUTS[0]; }
     void setHomeLayout(String v) { if (java.util.Arrays.asList(HOME_LAYOUTS).contains(v)) sp.edit().putString("homeLayout", v).apply(); }
     static String homeLayoutLabel(String v) { int i = java.util.Arrays.asList(HOME_LAYOUTS).indexOf(v); return HOME_LAYOUT_NAMES[Math.max(0, i)]; }
     /** «تطبيقات في الشريط»: how many favourites the home's tray shows whole at once, 5 (the default, as always) to 10, or "all" (up to 10, never a scroll) */

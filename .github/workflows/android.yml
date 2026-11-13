@@ -22,20 +22,18 @@ jobs:
   apk:
     needs: checks
     if: ${{ !cancelled() && (needs.checks.result == 'success' || needs.checks.result == 'skipped') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # Thmanyah's licence allows its files only inside a built product: they live in the private
-      # tshi-dev/urtv-fonts and are put in place here, never committed to this repository
-      - uses: actions/checkout@v4
-        with:
-          repository: tshi-dev/urtv-fonts
-          token: ${{ secrets.FONTS_TOKEN }}
-          path: .fonts-private
+      # Thmanyah's licence allows its files only inside a built product, never hosted: this repository keeps them
+      # encrypted (.github/signing/fonts.tar.enc, the same password as the signing key) and they are opened only here
       - name: Private fonts
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          mkdir -p .fonts-private android/launcher/src/main/assets/fonts
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .github/signing/fonts.tar.enc -pass env:KEYSTORE_PASSWORD | tar x -C .fonts-private
           cp .fonts-private/web/*.woff2 assets/fonts/
-          mkdir -p android/launcher/src/main/assets/fonts
           cp .fonts-private/android/*.otf android/launcher/src/main/assets/fonts/
           rm -rf .fonts-private
 
@@ -59,16 +57,22 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # the signing key lives only in the repository's secrets (made once with .github/tools/make_signing_key.py)
+      # the signing key (made once with .github/tools/make_signing_key.py): from the ANDROID_KEYSTORE_B64 secret, or else the
+      # password-encrypted copy in .github/signing/release.p12. Either way the password is only in the ANDROID_KEYSTORE_PASSWORD
+      # secret, so the file alone can't sign anything.
       - name: Signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD must both be in the repository's secrets"; exit 1
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD must be in the repository's secrets"; exit 1
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          else
+            cp .github/signing/release.p12 "$RUNNER_TEMP/release.p12"
+          fi
           echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
       - name: Build APKs

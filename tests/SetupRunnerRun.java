@@ -353,7 +353,7 @@ public class SetupRunnerRun {
         SetupRunner r20b = new SetupRunner();
         go(r20b, h20b, SetupRunner.Kind.FULL, o20b);
         String st20b = states(r20b);
-        line("R20b " + st20b.substring(st20b.indexOf("extras:"), st20b.indexOf(",", st20b.indexOf("extras:"))) + " github=" + h20b.downloads.stream().filter(u -> !u.contains("tshi-dev")).collect(java.util.stream.Collectors.toList())
+        line("R20b " + st20b.substring(st20b.indexOf("extras:"), st20b.indexOf(",", st20b.indexOf("extras:"))) + " github=" + h20b.downloads.stream().filter(u -> !u.contains("Bugami/AB_myTV")).collect(java.util.stream.Collectors.toList())
             + " tvbro=" + t20b.installed.contains("com.phlox.tvwebbrowser") + " smarttube=" + t20b.installed.contains("org.smarttube.stable") + " vlc=" + t20b.installed.contains("org.videolan.vlc"));
         // 20c. nothing ticked: no extras at all
         SetupEngineRun.FakeTv t20c = SetupEngineRun.tv(); SetupEngineRun.Mem m20c = new SetupEngineRun.Mem(); Host h20c = new Host(t20c, m20c);
@@ -361,7 +361,7 @@ public class SetupRunnerRun {
         SetupRunner r20c = new SetupRunner();
         go(r20c, h20c, SetupRunner.Kind.FULL, o20c);
         String st20c = states(r20c);
-        line("R20c " + st20c.substring(st20c.indexOf("extras:"), st20c.indexOf(",", st20c.indexOf("extras:"))) + " github=" + h20c.downloads.stream().filter(u -> !u.contains("tshi-dev")).count());
+        line("R20c " + st20c.substring(st20c.indexOf("extras:"), st20c.indexOf(",", st20c.indexOf("extras:"))) + " github=" + h20c.downloads.stream().filter(u -> !u.contains("Bugami/AB_myTV")).count());
         // 21. the start screen: after the precheck the run reads what it would change (nothing changed yet) and waits for «ابدأ»
         SetupEngineRun.FakeTv t21 = SetupEngineRun.tv(); t21.installed.remove("sa.urtv.screensaver"); SetupEngineRun.Mem m21 = new SetupEngineRun.Mem(); Host h21 = new Host(t21, m21);
         final int[] changesAtPlan = {-1};

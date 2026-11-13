@@ -34,7 +34,7 @@ public class MatchesActivity extends Activity {
     static final String EXTRA_EVENT = "event";
     private static final Uri CONFIG = Uri.parse("content://sa.urtv.screensaver.config");
     private static final Uri TASKS = Uri.parse("content://sa.urtv.screensaver.config/tasks");
-    private static final String FONTS = "https://raw.githubusercontent.com/tshi-dev/UrTV/master/assets/fonts/";
+    private static final String FONTS = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/assets/fonts/";
     private WebView web;
 
     @Override protected void attachBaseContext(android.content.Context b) { super.attachBaseContext(S.wrap(b)); }

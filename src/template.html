@@ -686,6 +686,15 @@
   .fcw{text-align:center;font-size:calc(var(--u)*24)}
   .fmk{flex:none;font-size:calc(var(--u)*18);font-weight:500;padding:calc(var(--u)*2) calc(var(--u)*8);border:1px solid currentColor;border-radius:calc(var(--u)*6);opacity:.85;white-space:nowrap}
 
+  /* Bugami/AB_myTV: the verse and the hadith in the football home's wide card, side by side */
+  .fqs2{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*24);height:100%}
+  .fq{display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*8*var(--k));min-width:0;text-align:center;padding-inline:calc(var(--u)*8)}
+  .fq + .fq{border-inline-start:1px solid var(--fln);padding-inline-start:calc(var(--u)*24)}
+  .fqw{color:var(--fam);font-size:calc(var(--u)*22*var(--k));font-weight:500}
+  .fqt{font-size:calc(var(--u)*30*var(--k));line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+  .fqs{color:var(--fs);font-size:calc(var(--u)*20*var(--k))}
+  #fb .orn,#fb .saw{font-family:'NotoMarks','Noto Naskh Arabic',serif;color:var(--fam)}
+  .fqt .qt{font-family:'UthmanicHafs','Thmanyah',serif;font-size:1.25em;line-height:1.7}
   /* ---- «المباريات» (#matchpage=1): the light look, sand paper and white cards, a green ring for the focus */
   html.mpage .stage,html.mpage .photo,html.mpage .veil,html.mpage .grain,html.mpage .top-veil,html.mpage .bottom-veil,html.mpage .dimmer,html.mpage #credit,html.mpage .adbar{display:none}
   html.mpage,html.mpage body{background:#F4F2EC}
@@ -768,6 +777,31 @@ html.lowram .photo.settle, html.lowram .week ul.flip li, html.lowram .mrow.flip 
   /* «UrTV النظيف» (#clean=1 the photo and the clock; =2 and the next-prayer line): a mask, the rest of the page is as it was */
   html.clean .top,html.clean .week,html.clean .p-mid,html.clean .p-match,html.clean .ystrip,html.clean .grain,html.clean .adbar,html.clean #fb,html.clean #mp,html.clean .mkup,html.clean #np{display:none!important}
   html.clean:not(.cl2) .p-prayer{display:none!important}
+
+  /* ===== Bugami/AB_myTV ===== */
+  /* the date: the day, the Hijri date, the Gregorian date, one size for all three */
+  .dday,.dates .hijri,.dates .greg{font-size:clamp(17px,1.55vw,31px);color:var(--sand);line-height:1.42;margin-top:0}
+  .dday{font-weight:500}
+  .dates .hijri,.dates .greg{font-weight:400}
+  .dday:empty{display:none}
+  /* the short weather: a picture of the sky and the temperature; the condition word and the day's range stay hidden */
+  .wxline{align-items:center}
+  .wxi{display:inline-flex;width:1.35em;height:1.35em;color:#FFFCF2}
+  .wxi svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .wxi:empty{display:none}
+  .wxline .wxd,.wxsub .wxr{display:none!important}
+  /* the bottom row: no next prayer; the dhikr in the middle, alone when the left slot is off */
+  .bottom .p-prayer{display:none!important}
+  .bottom{grid-template-columns:1fr 1.3fr}
+  html.slot-none .bottom{grid-template-columns:1fr}
+  html.slot-none .p-mid,html.slot-none .p-mid .big{text-align:center}
+  .p-mid .big.dhikr{white-space:normal;font-family:'Thmanyah',serif;font-weight:500;line-height:1.55;
+    font-size:clamp(15px,1.3vw,27px);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:.2em}
+  .p-mid .big.dhikr .num{font-size:1em;font-weight:500;color:var(--sand)}
+  /* the verse card's pair: «حديث اليوم» under the verse, drawn like the card's own heading, with room between */
+  .week li.hd2{display:flex;align-items:center;gap:.7em;border-bottom:none;padding:3.2vh 0 .3vh;
+    font-size:clamp(12px,1vw,18px);font-weight:500;color:var(--gold-2)}
+  .week li.hd2::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--gold-rgb),.5),transparent)}
 </style>
 </head>
 <body>
@@ -788,6 +822,7 @@ html.lowram .photo.settle, html.lowram .week ul.flip li, html.lowram .mrow.flip 
 
   <header class="top">
     <div class="dates">
+      <div class="dday" id="dday"></div>
       <div class="hijri" id="hijri">—</div>
       <div class="greg" id="greg">—</div>
       <div class="natline" id="natline" hidden></div>
@@ -795,7 +830,7 @@ html.lowram .photo.settle, html.lowram .week ul.flip li, html.lowram .mrow.flip 
     </div>
 
     <div class="markets">
-      <div class="wxline"><span class="wxt" id="wx-temp"></span><span class="wxd" id="wx-desc"></span><span class="wxdust" id="wx-dust"></span></div>
+      <div class="wxline"><span class="wxi" id="wx-icon"></span><span class="wxt" id="wx-temp"></span><span class="wxd" id="wx-desc"></span><span class="wxdust" id="wx-dust"></span></div>
       <div class="wxsub"><span id="wx-city">الرياض</span><span class="wxr" id="wx-range"></span></div>
       <div class="wxsrc" id="wx-src"></div>
       <div class="rule l"></div>
@@ -1167,22 +1202,22 @@ function tickDates(){
   nl.hidden = !nat;
   if(nat) setText(nl, nat.name + ' ' + ar(nat.n) + nat.unit);
   try{
+    // Bugami/AB_myTV: the day on its own line above the two dates, as on the home screen
+    setText(document.getElementById('dday'), new Intl.DateTimeFormat(document.documentElement.lang === 'en' ? 'en' : 'ar-SA',
+      {timeZone: CONFIG.timezone, weekday:'long'}).format(now));
     const hf = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-' + NU,{
-      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
+      timeZone: CONFIG.timezone, day:'numeric', month:'long', year:'numeric'
     });
     let h;
     if(!CONFIG.hijri) h = hf.format(now);
-    else{   // the day, month and year move; the weekday is today's
-      const wd = hf.formatToParts(now).find(x => x.type === 'weekday');
-      h = hf.formatToParts(hijriAt(now)).map(x => x.type === 'weekday' && wd ? wd.value : x.value).join('');
-    }
+    else h = hf.format(hijriAt(now));   // the day, month and year move
     h = h.replace(/\s*هـ\s*$/,'').replace(/،\s*$/,'');
     setText(document.getElementById('hijri'), h + ' هـ');
   }catch(e){}
   try{
     setText(document.getElementById('greg'), gregFmt({
-      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
-    }).format(now));
+      timeZone: CONFIG.timezone, day:'numeric', month:'long', year:'numeric'
+    }).format(now) + (document.documentElement.lang === 'en' ? '' : ' م'));
   }catch(e){}
 }
 
@@ -1675,6 +1710,7 @@ function tickOccasion(){
   // ---- the national day itself: a greeting instead of the countdown ----
   const nat = nationalNow();
   if(nat && nat.today){
+    elD.parentNode.classList.remove('dhikr');
     setText(elL, nat.short);
     setHTML(elD, '<span class="txt">كل عام والوطن بخير</span>');
     setText(elS, '');
@@ -1683,6 +1719,7 @@ function tickOccasion(){
 
   // ---- Ramadan mode: iftar / suhoor instead of the countdown ----
   if(hijriMonthNow() === 9 && PRAYERS.length){
+    elD.parentNode.classList.remove('dhikr');
     const rp = riyadhParts();
     const mins = rp.h*60 + rp.mi + rp.s/60;
     const fajr = PRAYERS.find(p=>p.key==='Fajr');
@@ -1700,8 +1737,18 @@ function tickOccasion(){
     return;
   }
 
-  // ---- the occasion's day, or the countdown to the next one ----
+  // ---- Bugami/AB_myTV: a short dhikr, a new one every 10 minutes, instead of the countdown to the next occasion
+  // (cut from al-Bukhari and Muslim by .github/tools/make_dhikr.py); the occasion's own day still shows ----
   const oc = occasionNow();
+  if(!(oc && oc.today) && DHIKR.length){
+    const k = DHIKR[Math.floor(Date.now() / 600000) % DHIKR.length];
+    elD.parentNode.classList.add('dhikr');
+    setText(elL, 'ذكر');
+    setText(elD, k.text);
+    setText(elS, k.source);
+    return;
+  }
+  elD.parentNode.classList.remove('dhikr');
   if(!oc){ setText(elL, ''); setText(elD, '—'); setText(elS, ''); return; }
   const o = oc.o;
   setText(elL, o.name + (o.year ? ' ' + ar(oc.hy) : ''));
@@ -1716,6 +1763,7 @@ function tickOccasion(){
     + (o.note ? '<div class="note">' + esc(o.note) + '</div>' : ''));
 }
 
+const DHIKR = __DHIKR__;   // Bugami/AB_myTV: assets/shared/dhikr.json, cut from al-Bukhari and Muslim
 const TEAM_AR = __TEAMS_AR__;   // assets/shared/teams-ar.json
 // match "Al-Adalah", "Al Adalah", "Al-Adalah FC" and "AL ADALAH" to the same entry, and "Atlético" to "Atletico"
 // (the same key as team_key() in .github/tools/team_ids.py and Arabic.key(); tests/team_ids_test.py compares them)
@@ -3546,8 +3594,28 @@ function pickShort(list, at, len, card){
 }
 // The verse card's turn: the day as always, or with #versemin=3 the 3-minute slot of the clock
 const quoteTurn = () => CONFIG.verseMin ? Math.floor(Date.now() / (CONFIG.verseMin * 60000)) : riyadhDayNumber();
+// Bugami/AB_myTV: «الآية والحديث» both (the default) is the verse of the day and, under it, the hadith of the day: short verses
+// (VERSE_PAIR_WORDS) and short sayings of the Prophet from al-Bukhari and Muslim (hadith_short() in src/build.py)
+const HADITH_SHORT = __HADITH_SHORT__.map(i => HADITH[i]).filter(h => h && h.parts.some(p => p[0] === 'q')).map(h => ({
+  t: h.parts.find(p => p[0] === 'q')[1].split(/\s+/).join(' ').replace(/^[\s،,.]+|[\s،,.]+$/g, ''), s: h.source}));
+const VERSE_PAIR_WORDS = 20;
+const VERSES_SHORT = VERSES.filter(v => v.text.split(/\s+/).length <= VERSE_PAIR_WORDS);
+function quotePair(card){
+  const n = quoteTurn(), rows = [];
+  const saw = s => s.replace(/ﷺ/g, '<span class="saw">ﷺ</span>');
+  if(VERSES_SHORT.length){
+    const v = pickShort(VERSES_SHORT, n, x => x.text.length, card);
+    rows.push(`<li class="quote quran pair">${'<span class="orn">﴿</span>'}<span class="qt">${esc(v.text)}</span><span class="orn">﴾</span></li>`, `<li class="src">${esc(v.surah)} · ${ar(v.ayah)}</li>`);
+  }
+  if(HADITH_SHORT.length){
+    const h = pickShort(HADITH_SHORT, n, x => x.t.length, card);
+    if(rows.length) rows.push(`<li class="hd2">${CONFIG.verseMin ? 'حديث شريف' : 'حديث اليوم'}</li>`);
+    rows.push(`<li class="quote hadith pair">${saw('قال رسول الله ﷺ')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
+  }
+  return {title: VERSES_SHORT.length ? (CONFIG.verseMin ? 'آية كريمة' : 'آية اليوم') : (CONFIG.verseMin ? 'حديث شريف' : 'حديث اليوم'), rows};
+}
 function quoteOfDay(card){
-  // both (the default): even turns a verse, odd a hadith, each list a step every two turns
+  if(CONFIG.verseKind === 'both' && (VERSES_SHORT.length || HADITH_SHORT.length)) return quotePair(card);
   const n = quoteTurn(), kind = CONFIG.verseKind, half = kind === 'both' ? Math.floor(n / 2) : n;
   if(VERSES.length && (kind === 'verse' || (kind === 'both' && n % 2 === 0))){
     const v = pickShort(VERSES, half, x => x.text.length, card);
@@ -3686,6 +3754,8 @@ async function loadWeather(){
     WX.wind = CONFIG.wxMore && typeof j.current.wind_speed_10m === 'number' ? j.current.wind_speed_10m : null;
     saveWx();
     setText(document.getElementById('wx-temp'), ar(Math.round(j.current.temperature_2m)) + '°');
+    // Bugami/AB_myTV: the sky as a picture beside the temperature (day or night by the city's clock)
+    { const hr = riyadhParts().h; setHTML(document.getElementById('wx-icon'), wxIcon(j.current.weather_code, hr < 6 || hr >= 18)); }
     const d = document.getElementById('wx-desc');
     setText(d, WX_CODES[j.current.weather_code] || '');
     wxSource();
@@ -3754,7 +3824,7 @@ function pixelShift(){
 
 // Background photos: the hosted set in photos/
 // once it has loaded; offline, or if it fails, a bundled one is shown, so the screen is never empty.
-const PHOTO_BASE = 'https://raw.githubusercontent.com/tshi-dev/UrTV/master/photos/';
+const PHOTO_BASE = 'https://raw.githubusercontent.com/Bugami/AB_myTV/master/photos/';
 let REMOTE_BGS = (()=>{ try{ return JSON.parse(localStorage.getItem('photoIndex') || '[]'); }catch(e){ return []; } })();
 
 // The owner's own photos: the app answers OWN_BASE N.jpg
@@ -4074,7 +4144,7 @@ function nowPlayingTick(){
 // files on data-leagues, the Saudi Pro League's when none is followed), the prayers are computed or Aladhan's, as everywhere on the page.
 // The launcher owns the focus (FootballFocus.java)
 const FB_W = {
-  weather:'الطقس', prayers:'أوقات الصلاة', today:'مباريات اليوم', upcoming:'المباريات القادمة', title:'المباريات', yours:'فرقك', none:'لا مباريات اليوم', noneTomorrow:'لا مباريات غدًا', noneYesterday:'لا مباريات أمس', noneDay:'لا مباريات', back:'رجوع',
+  weather:'الطقس', prayers:'أوقات الصلاة', today:'مباريات اليوم', quotes:'آية وحديث', upcoming:'المباريات القادمة', title:'المباريات', yours:'فرقك', none:'لا مباريات اليوم', noneTomorrow:'لا مباريات غدًا', noneYesterday:'لا مباريات أمس', noneDay:'لا مباريات', back:'رجوع',
   feels:'المحسوسة', hum:'الرطوبة', wind:'الرياح', kmh:'%s كم/س', pct:'٪%s', live:'مباشر', ended:'انتهت', vs:'×',
   yesterday:'أمس', tday:'اليوم', tomorrow:'غدًا', g1:'مباراة واحدة', g2:'مباراتان', gFew:'%s مباريات', gMany:'%s مباراة',
   allOn:'كلها على %s', round:'الجولة %s', venue:'الملعب', channel:'القناة', withPrayer:'مع الصلاة', game:'المباراة',
@@ -4240,7 +4310,7 @@ function fbPrayersHtml(){
   const n = PRAYERS[next], left = n.h * 60 + n.mi + (tomorrow ? 1440 : 0) - mins;
   return '<ul class="fpl">' + PRAYERS.map((x, i) => `<li${i === next ? ' class="nx"' : ''}><span class="fpi">${FB_ICON[x.key] || ''}</span>`
     + `<b>${prayerName(x)}</b><span class="fpt">${fmtTime(x.h, x.mi)}</span></li>`).join('') + '</ul>'
-    + `<div class="fpn">${fw(FB_W.nextIn, prayerName(n), shortHM(Math.max(0, Math.round(left * 60))))}</div>`;
+    + (FB_QUOTES ? '' : `<div class="fpn">${fw(FB_W.nextIn, prayerName(n), shortHM(Math.max(0, Math.round(left * 60))))}</div>`);
 }
 // ONE match line for the home widget and the «المباريات» list
 // [time column at the start] [home: crest + name, hugging the ×] [×, 32 px each side] [away
@@ -4263,9 +4333,30 @@ function fbAllOn(list){   // «كلها على ثمانية» when every game ha
   const m = list.map(ev => (markOf(ev) || {}).mark);
   return m.length && m[0] && m.every(x => x === m[0]) ? ' · ' + fw(FB_W.allOn, m[0]) : '';
 }
+// Bugami/AB_myTV: the wide card holds a verse and a hadith side by side instead of today's games; nothing opens from it
+const FB_QUOTES = true;
+function fbQuotesHtml(){
+  const n = Math.floor(Date.now() / 60000), out = [];   // a new pair every minute
+  if(VERSES_SHORT.length){
+    const v = VERSES_SHORT[n % VERSES_SHORT.length];
+    out.push(`<div class="fq"><span class="fqw">قال الله تعالى</span><span class="fqt"><span class="orn">﴿</span><span class="qt">${esc(v.text)}</span><span class="orn">﴾</span></span><span class="fqs">${esc(v.surah)} · ${ar(v.ayah)}</span></div>`);
+  }
+  if(HADITH_SHORT.length){
+    const h = HADITH_SHORT[(n * 7) % HADITH_SHORT.length];
+    out.push(`<div class="fq"><span class="fqw">قال رسول الله <span class="saw">ﷺ</span></span><span class="fqt">«${esc(h.t)}»</span><span class="fqs">${esc(h.s)}</span></div>`);
+  }
+  return out.length ? `<div class="fqs2">${out.join('')}</div>` : '<div class="fnone">—</div>';
+}
 function fbRender(){
   const root = document.getElementById('fb');
   if(!root) return;
+  if(FB_QUOTES){
+    setHTML(document.getElementById('fb-wx-c'), fbWeatherHtml());
+    setHTML(document.getElementById('fb-pr-c'), fbPrayersHtml());
+    setText(document.getElementById('fb-mt-n'), '');
+    setHTML(document.getElementById('fb-mt-c'), fbQuotesHtml());
+    return;
+  }
   const now = Date.now(), list = FB.list = fbHome(now);
   FB.at = Math.max(0, Math.min(FB.at, list.length - 1));
   setHTML(document.getElementById('fb-wx-c'), fbWeatherHtml());
@@ -4304,7 +4395,7 @@ function fbTop(t){ FB.top = Math.max(150, Math.min(320, +t || 216)); fbLayout();
 function fbLight(on){ FB.light = !!on; document.documentElement.classList.toggle('fb-light', FB.light); }
 function fbFocus(which){
   FB.focus = ['wx', 'pr', 'mt'].includes(which) ? which : '';
-  const open = FB.focus === 'mt';
+  const open = FB.focus === 'mt' && !FB_QUOTES;
   if(open && !FB.open) FB.at = 0;
   FB.open = open;
   document.documentElement.classList.toggle('fb-open', open);
@@ -4342,14 +4433,14 @@ function bootFootball(){
   document.body.insertAdjacentHTML('beforeend', '<div id="fb">'
     + `<section class="fbw" id="fb-wx"><h3>${FB_W.weather}</h3><div class="fbc" id="fb-wx-c"></div></section>`
     + `<section class="fbw" id="fb-pr"><h3>${FB_W.prayers}</h3><div class="fbc" id="fb-pr-c"></div></section>`
-    + `<section class="fbw" id="fb-mt"><h3>${FB_W.today}<span class="fbn" id="fb-mt-n"></span></h3><div class="fbc" id="fb-mt-c"></div></section>`
+    + `<section class="fbw" id="fb-mt"><h3>${FB_QUOTES ? FB_W.quotes : FB_W.today}<span class="fbn" id="fb-mt-n"></span></h3><div class="fbc" id="fb-mt-c"></div></section>`
     + `<section id="fb-row"><h3>${FB_W.today}<span class="fbn" id="fb-row-n"></span></h3><div class="fbv"><div class="fbr" id="fb-row-c"></div></div></section></div>`);
   fbLayout();
   addEventListener('resize', () => { fbLayout(); fbScroll(); });
   fbRender();
   loadPrayers(); periodic(loadPrayers, 6 * 3600 * 1000);
   loadFbWeather(); periodic(loadFbWeather, 30 * 60 * 1000);
-  loadMatches(); periodic(loadMatches, 30 * 60 * 1000); periodic(loadLive, 2 * 60000);
+  if(!FB_QUOTES){ loadMatches(); periodic(loadMatches, 30 * 60 * 1000); periodic(loadLive, 2 * 60000); }
   setInterval(fbRender, 15000);
   if(document.fonts) document.fonts.ready.then(fbScroll);
   reveal();

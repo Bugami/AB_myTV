@@ -27,7 +27,7 @@ FONTS = {
     "__F_HAFS__": "UthmanicHafs-v30.woff2",   # the whole font, unmodified: its licence forbids changing it (see UthmanicHafs-NOTICE.txt)
 }
 # tv.html points here for fonts and bundled photos; the app answers from its assets, a browser from GitHub.
-REPO = "https://raw.githubusercontent.com/tshi-dev/UrTV/master/"
+REPO = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/"
 
 
 TAFSIR_MAX = 130   # characters kept of «التفسير الميسر»; the card shows at most three lines of it
@@ -218,6 +218,63 @@ def hadith_for_screen():
     return out
 
 
+# ---- Bugami/AB_myTV: short sayings, and the dhikr of the screensaver's middle panel
+def plain(s):
+    return re.sub("[\u064B-\u065F\u0670]", "", s)
+
+
+HOME_MAX_WORDS = 18   # a short saying: two lines on the home screen's card
+SAID = re.compile("ﷺ" + "\\s*(?:" + HARAKAT.join("قال") + HARAKAT + "|" + HARAKAT.join("يقول") + HARAKAT + ")?\\s*[:،,]?\\s*$")
+
+
+# Left off the home screen's row, which shows each saying alone: ones that need their story or the rest of the
+# hadith, speak to one person or one moment, or are rulings better read with an explanation. Matched without harakat.
+HOME_SKIP = (
+    "انصر أخاك", "حق المسلم على المسلم خمس", "إن من الشجر شجرة", "بين كل أذانين", "اللهم لا عيش", "اللهم اجعل رزق",
+    "اللهم اجعل بالمدينة", "إن الإيمان ليأرز", "بادروا بالأعمال", "لتؤدن الحقوق", "لو تعلمون ما أعلم",
+    "إذا قال الرجل لأخيه", "الشهداء خمسة", "الطاعون شهادة", "إذا سمعتم بالطاعون", "في الحبة السوداء",
+    "من تصبح كل يوم", "العين حق", "من صلى الصبح", "إن أبغض الرجال", "إن الله ليملي", "لا عدوى", "البيعان بالخيار",
+    "مطل الغني", "اقرءوا القرآن ما ائتلفت", "أنفقي ولا تحصي", "لا يقولن أحدكم عبدي", "ما حق امرئ مسلم",
+    "لا تمنعوا إماء الله", "يا نساء المسلمات", "من عال جاريتين", "تنكح المرأة", "لو دعيت إلى ذراع",
+    "هل تنصرون", "ما أحد أصبر", "لا يمشي أحدكم في نعل", "إذا انتعل أحدكم", "الحلف منفقة", "من حلف على يمين",
+    "من كان حالفا", "لا يقولن أحدكم اللهم اغفر", "إذا دعي أحدكم إلى الوليمة", "السفر قطعة", "سباب المسلم",
+    "ليس منا من لم يتغن", "تعاهدوا القرآن", "إن الله تجاوز", "يتبع الميت", "من أخذ أموال الناس", "لا يحتكر",
+    "بين الرجل وبين الشرك", "إن الله حرم عليكم", "إنك لن تنفق", "على أنقاب المدينة", "قل اللهم اهدني",
+    "إن الله قال إذا ابتليت", "يقول الله تعالى ما لعبدي", "يهرم ابن آدم", "والذي نفسي بيده لو لم تذنبوا",
+    "من نسي وهو صائم", "رب أشعث", "لا تسبوا الأموات", "إن اللعانين", "يبعث كل عبد", "قال الله تبارك وتعالى أنا أغنى",
+    "من يضمن لي", "من يرد الله به خيرا", "طعام الاثنين", "رحم الله رجلا سمحا", "إذا صلى أحدكم للناس",
+    "إذا قلت لصاحبك", "الدنيا سجن",
+)
+
+
+def hadith_short():
+    """The short sayings (Bugami/AB_myTV): the screensaver's verse card under the verse, and the home's verse and hadith card.
+    Only al-Bukhari and Muslim, only the Prophet's own words, and only where the
+    narration before them is just «قال النبي ﷺ» (no story the words would need), short enough for a card."""
+    out, seen = [], set()
+    for i, h in enumerate(hadith_for_screen()):
+        if not h["source"].startswith(("صحيح البخاري", "صحيح مسلم")):
+            continue
+        quotes = [t for k, t in h["parts"] if k == "q"]
+        narr = [t for k, t in h["parts"] if k == "n"]
+        if len(quotes) != 1 or len(narr) != 1 or h["parts"][-1][0] != "q":
+            continue
+        if not SAID.search(narr[0]) or len(narr[0].split()) > 14:
+            continue
+        text = " ".join(quotes[0].split()).strip(" ،,.")
+        key = plain(text)
+        if len(text.split()) > HOME_MAX_WORDS or key in seen or key.startswith(HOME_SKIP):
+            continue
+        seen.add(key)
+        out.append({"t": text, "s": h["source"], "i": i})
+    return out
+
+
+def hadith_short_index():
+    """hadith_short() as places in the page's HADITH list (the page takes the words from there: no text twice in tv.html)."""
+    return [h["i"] for h in hadith_short()]
+
+
 def data_uri(path, mime):
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
@@ -321,21 +378,21 @@ function enDate(d, o){
     ("const AR = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];", "const AR = [" + ",".join(f"'\\u{0x660 + k:04x}'" for k in range(10)) + "];", 1),
     # «Monday, 22 Jumada al-Awwal 1448 AH»: the month transliterated, as the Gregorian line under it
     ("""    const hf = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-' + NU,{
-      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
+      timeZone: CONFIG.timezone, day:'numeric', month:'long', year:'numeric'
     });
     let h;
     if(!CONFIG.hijri) h = hf.format(now);
-    else{   // the day, month and year move; the weekday is today's
-      const wd = hf.formatToParts(now).find(x => x.type === 'weekday');
-      h = hf.formatToParts(hijriAt(now)).map(x => x.type === 'weekday' && wd ? wd.value : x.value).join('');
-    }
+    else h = hf.format(hijriAt(now));   // the day, month and year move
     h = h.replace(/\\s*هـ\\s*$/,'').replace(/،\\s*$/,'');
     setText(document.getElementById('hijri'), h + ' هـ');""",
      """    const hp = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{timeZone: CONFIG.timezone, day:'numeric', month:'numeric', year:'numeric'})
       .formatToParts(hijriAt(now)).reduce((a, x) => (a[x.type] = x.value, a), {});
-    const wd = EN_DAYS[enDay(now, CONFIG.timezone).wd];
-    const hm = HIJRI_EN[parseInt(hp.month, 10) - 1];
-    if(hm) setText(document.getElementById('hijri'), wd + ', ' + ar(parseInt(hp.day, 10)) + ' ' + hm + ' ' + ar(parseInt(hp.year, 10)) + ' AH');""", 1),
+    const hm = HIJRI_EN[parseInt(hp.month, 10) - 1];   // Bugami/AB_myTV: the day is on its own line above
+    if(hm) setText(document.getElementById('hijri'), ar(parseInt(hp.day, 10)) + ' ' + hm + ' ' + ar(parseInt(hp.year, 10)) + ' AH');""", 1),
+    # Bugami/AB_myTV: the day line in English, the Gregorian date with no «م»
+    ("new Intl.DateTimeFormat(document.documentElement.lang === 'en' ? 'en' : 'ar-SA',\n      {timeZone: CONFIG.timezone, weekday:'long'}).format(now)",
+     "EN_DAYS[enDay(now, CONFIG.timezone).wd]", 1),
+    ("}).format(now) + (document.documentElement.lang === 'en' ? '' : ' م'));", "}).format(now));", 1),
     ("if(nat) setText(nl, nat.name + ' ' + ar(nat.n) + nat.unit);", "if(nat) setText(nl, nat.name + ' · ' + ar(nat.n) + ' years');", 1),
     # one day, 2 days; «2 hours, 15 min» (the parts are joined with ' و ' → ', ', which the code also splits on)
     ("""const UNIT = {
@@ -468,6 +525,8 @@ def fill(html, clubs, english_page):
     html = html.replace("__VERSES__", js_json(verses_for_screen()))
     html = html.replace("__HADITH__", js_json(hadith_for_screen()))   # checked by CI
     html = html.replace("__ADHKAR__", js_json(adhkar_for_screen()))   # checked by CI
+    html = html.replace("__HADITH_SHORT__", js_json(hadith_short_index()))   # Bugami/AB_myTV: places in HADITH
+    html = html.replace("__DHIKR__", (ROOT / "assets/shared/dhikr.json").read_text(encoding="utf-8").strip().replace("</", "<\\/"))
     html = html.replace("__WISDOM__", js_json(json.loads((ROOT / "assets/shared/wisdom.json").read_text(encoding="utf-8"))))
     return html
 

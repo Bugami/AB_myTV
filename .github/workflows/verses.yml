@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   verses:
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

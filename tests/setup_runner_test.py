@@ -114,7 +114,7 @@ check("R14: the community questions, and the answers through the runner: «yes»
 check("R15: the full run with the accurate measurement: it restarts the TV before, stops, and goes on after the boot by itself; again after; never twice for one reading",
       got.get("R15") == f"R15 first=null await=true reboots=1 phase=before second=null reboots=2 third={FULL_DONE} reboots=2 kinds=[before restart|after restart] rows=true", got.get("R15"))
 check("R15: the screensaver was downloaded from apk-latest and streamed to `cmd package install -S`, then made the screensaver; TV Bro and SmartTube (the TV's processor's build) too",
-      got.get("R15i") == "R15i [https://github.com/tshi-dev/UrTV/releases/download/apk-latest/urtv-screensaver.apk, https://github.com/truefedex/tv-bro/releases/download/v2.0.1/tvbro-2.0.1-generic-geckoExcluded.apk, "
+      got.get("R15i") == "R15i [https://github.com/Bugami/AB_myTV/releases/download/apk-latest/urtv-screensaver.apk, https://github.com/truefedex/tv-bro/releases/download/v2.0.1/tvbro-2.0.1-generic-geckoExcluded.apk, "
       "https://github.com/yuliskov/SmartTube/releases/download/29.1/SmartTube_stable_29.1_arm64-v8a.apk] [cmd package install -r -S 19, cmd package install -r -S 22, cmd package install -r -S 20] "
       "installedByUs=[sa.urtv.screensaver, com.phlox.tvwebbrowser, org.smarttube.stable] saver=sa.urtv.screensaver/.ScreenDream timeout=1800000->back", got.get("R15i"))
 check("R15: the screensaver timeout was stretched for the reading and put back exactly; the ADB key would stay only while it waits for the restart",

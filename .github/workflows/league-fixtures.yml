@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   fixtures:
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
     runs-on: ubuntu-latest
     timeout-minutes: 90   # the free API answers about one request in 15 s: 16 leagues took 48 minutes
     steps:

@@ -6,6 +6,8 @@
 
 <p align="center">An Arabic home screen and a Saudi screensaver for Android TV / Google TV, and a safe speed-up.<br>Set it up from the TV itself with one button, or from your phone or computer.</p>
 
+<p align="center" dir="rtl"><b>نسخة خاصة</b> مبنية على <a href="https://github.com/tshi-dev/UrTV">tshi-dev/UrTV</a> ٤٫٣، بتصميم صاحبها: آية وحديث بدل المباريات في الرئيسية، وآية اليوم وتحتها حديث اليوم و«ذكر» في شاشة التوقف. التطبيقان هنا يُبنيان من هذا المستودع ويتحدّثان منه.</p>
+
 <p align="center"><img src=".github/screens/before-after-home.jpg" alt="Before: Google TV home. After: the تلفزيونك home screen" width="100%"></p>
 <p align="center"><img src=".github/screens/before-after-screensaver.jpg" alt="Before: the Google screensaver. After: شاشة تلفزيونك" width="100%"></p>
 
