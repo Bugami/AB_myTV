@@ -262,6 +262,7 @@ node tests/prayer_crosscheck_world_page.mjs
 node tests/hijri_crosscheck_page.mjs
 node tests/page.test.mjs
 node tests/football_page.test.mjs   # the football home's widgets and «المباريات» in a browser, on fixed games
+node tests/ab_page.test.mjs   # Bugami/AB_myTV: the owner's design (#ab=1) in a browser
 node tests/phone_page.test.mjs
 node tests/sync_cards.test.mjs   # «توحيد المظهر» on the page: the cards in the material's fill, line and ink, readable on a light look
 node tests/reminder_page.test.mjs   # the screensaver's reminder card: its time, «الآن», «تم», the snooze, the keys, the adhan, English

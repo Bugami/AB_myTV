@@ -672,6 +672,7 @@ final class Prefs {
             + openTasksParam() + remindersParam()
             + (wallDim() > 0 ? "&walldim=" + wallDim() : "")
             + ownParam()
+            + "&ab=1"   // Bugami/AB_myTV: the owner's design on the page (CONFIG.ab); the home's cards take this fragment too
             + packsParam();
     }
 

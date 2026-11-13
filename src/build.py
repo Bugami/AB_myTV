@@ -378,21 +378,21 @@ function enDate(d, o){
     ("const AR = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];", "const AR = [" + ",".join(f"'\\u{0x660 + k:04x}'" for k in range(10)) + "];", 1),
     # «Monday, 22 Jumada al-Awwal 1448 AH»: the month transliterated, as the Gregorian line under it
     ("""    const hf = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-' + NU,{
-      timeZone: CONFIG.timezone, day:'numeric', month:'long', year:'numeric'
+      timeZone: CONFIG.timezone, weekday:'long', day:'numeric', month:'long', year:'numeric'
     });
     let h;
     if(!CONFIG.hijri) h = hf.format(now);
-    else h = hf.format(hijriAt(now));   // the day, month and year move
+    else{   // the day, month and year move; the weekday is today's
+      const wd = hf.formatToParts(now).find(x => x.type === 'weekday');
+      h = hf.formatToParts(hijriAt(now)).map(x => x.type === 'weekday' && wd ? wd.value : x.value).join('');
+    }
     h = h.replace(/\\s*هـ\\s*$/,'').replace(/،\\s*$/,'');
     setText(document.getElementById('hijri'), h + ' هـ');""",
      """    const hp = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{timeZone: CONFIG.timezone, day:'numeric', month:'numeric', year:'numeric'})
       .formatToParts(hijriAt(now)).reduce((a, x) => (a[x.type] = x.value, a), {});
-    const hm = HIJRI_EN[parseInt(hp.month, 10) - 1];   // Bugami/AB_myTV: the day is on its own line above
-    if(hm) setText(document.getElementById('hijri'), ar(parseInt(hp.day, 10)) + ' ' + hm + ' ' + ar(parseInt(hp.year, 10)) + ' AH');""", 1),
-    # Bugami/AB_myTV: the day line in English, the Gregorian date with no «م»
-    ("new Intl.DateTimeFormat(document.documentElement.lang === 'en' ? 'en' : 'ar-SA',\n      {timeZone: CONFIG.timezone, weekday:'long'}).format(now)",
-     "EN_DAYS[enDay(now, CONFIG.timezone).wd]", 1),
-    ("}).format(now) + (document.documentElement.lang === 'en' ? '' : ' \\u0645'));   // « م»", "}).format(now));", 1),
+    const wd = EN_DAYS[enDay(now, CONFIG.timezone).wd];
+    const hm = HIJRI_EN[parseInt(hp.month, 10) - 1];
+    if(hm) setText(document.getElementById('hijri'), wd + ', ' + ar(parseInt(hp.day, 10)) + ' ' + hm + ' ' + ar(parseInt(hp.year, 10)) + ' AH');""", 1),
     ("if(nat) setText(nl, nat.name + ' ' + ar(nat.n) + nat.unit);", "if(nat) setText(nl, nat.name + ' · ' + ar(nat.n) + ' years');", 1),
     # one day, 2 days; «2 hours, 15 min» (the parts are joined with ' و ' → ', ', which the code also splits on)
     ("""const UNIT = {

@@ -77,9 +77,8 @@ const ARABIC = /[؀-ۿ]/g;
     quoteDir: (document.querySelector('li.quote') && getComputedStyle(document.querySelector('li.quote')).direction) || '',
   }));
   check('lang="en" dir="ltr", the English title', r.dir === 'ltr' && r.lang === 'en' && r.title === 'Your TV Screen', JSON.stringify(r));
-  // Bugami/AB_myTV: the weekday has its own line (#dday) above the two dates
-  check('the Hijri date in English with the month transliterated', r.hijri === '22 Jumada al-Awwal 1448 AH', r.hijri);
-  check('the Gregorian date in English', r.greg === '2 November 2026', r.greg);
+  check('the Hijri date in English with the month transliterated', r.hijri === 'Monday, 22 Jumada al-Awwal 1448 AH', r.hijri);
+  check('the Gregorian date in English', r.greg === 'Monday, 2 November 2026', r.greg);
   check('the next prayer: «Next prayer», «Maghrib», «5:13 PM», «in 1 hour, 55 min»',
     r.label === 'Next prayer' && r.name === 'Maghrib' && /^\d{1,2}:\d\d PM$/.test(r.time) && /^in \d+ hours?, \d+ min$/.test(r.count), JSON.stringify(r));
   check('the clock: Latin digits by default, PM after the digits', r.ap === 'PM' && r.apX > r.hX, JSON.stringify(r));
@@ -118,7 +117,7 @@ const ARABIC = /[؀-ۿ]/g;
 {
   const { p, ctx, errors } = await open('tv-en.html', 'city=Riyadh&digits=hindi&panel=prayers');
   const r = await p.evaluate(() => [document.getElementById('ck-h').textContent, document.getElementById('hijri').textContent]);
-  check('#digits=hindi: the clock and the dates in Arabic-Indic digits, the words English', !errors.length && /^[٠-٩]+$/.test(r[0]) && /^[٠-٩]+ Jumada al-Awwal [٠-٩]+ AH$/.test(r[1]), JSON.stringify(r) + errors.join('; '));
+  check('#digits=hindi: the clock and the dates in Arabic-Indic digits, the words English', !errors.length && /^[٠-٩]+$/.test(r[0]) && /^Monday, [٠-٩]+ Jumada al-Awwal [٠-٩]+ AH$/.test(r[1]), JSON.stringify(r) + errors.join('; '));
   await ctx.close();
 }
 
