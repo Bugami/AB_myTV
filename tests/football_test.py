@@ -16,8 +16,8 @@ def check(name, ok, detail=""):
 read = lambda p: p.read_text(encoding="utf-8")
 
 prefs, recv, prov, st = read(APP / "Prefs.java"), read(APP / "SaverReceiver.java"), read(APP / "ConfigProvider.java"), read(APP / "SettingsActivity.java")
-check("the setting: classic (the default, the home as it always was) or football, nothing else kept",
-      'static final String[] HOME_LAYOUTS = {"classic", "football"};' in prefs and 'sp.getString("homeLayout", HOME_LAYOUTS[0])' in prefs
+check("the setting: classic or football (Bugami/AB_myTV: football the default), nothing else kept",
+      'static final String[] HOME_LAYOUTS = {"classic", "football"};' in prefs and 'sp.getString("homeLayout", HOME_LAYOUTS[1])' in prefs
       and "if (java.util.Arrays.asList(HOME_LAYOUTS).contains(v)) sp.edit().putString(\"homeLayout\", v).apply();" in prefs)
 check("saver.sh homelayout: refused unless classic or football, saved, and said by show",
       'return "error: homelayout is one of "' in recv and "if (homeLayout != null) p.setHomeLayout(homeLayout);" in recv
@@ -44,8 +44,8 @@ check("HomeCard: the widgets' box is the screen's width from its top, 832 high a
 check("a focus target over each widget, placed where the page says, its OK the home's; ◀ ▶ on the games walk them and never leave",
       'js("typeof fbRects===\'function\'?fbRects():\'\'"' in ff and "js(\"fbFocus('\" + key + \"')\", this::place);" in ff
       and 'js("fbMove(" + (code == Dir.forwardKey() ? 1 : -1) + ")", null);' in ff and "return true;   // ◀ ▶ walk the games" in ff)
-check("the games' focus drops the tray 40 px (lowerTray), a favourite's focus brings it back before the tile lifts",
-      "lowerTray(FootballFocus.MT.equals(which));" in main and "long wait = inDock && has && trayLowered ? FavBar.DROP_MS : 0;" in main
+check("Bugami/AB_myTV: the verse and hadith card never drops the tray; a favourite's focus brings it back before the tile lifts",
+      "lowerTray(false);   // Bugami/AB_myTV: the wide card holds a verse and a hadith and never opens into a row" in main and "long wait = inDock && has && trayLowered ? FavBar.DROP_MS : 0;" in main
       and "if (inDock && has) lowerTray(false);" in main and ".setStartDelay(wait)" in main)
 check("the focus: ▼ from a widget is the tray, ▲ from the tray the games, ▲ from the games the prayers, the buttons down to the prayers",
       "v.setNextFocusDownId(dockId != View.NO_ID ? dockId : v.getId());" in main and "fMt.setNextFocusUpId(fPr.getId());" in main

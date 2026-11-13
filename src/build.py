@@ -392,7 +392,7 @@ function enDate(d, o){
     # Bugami/AB_myTV: the day line in English, the Gregorian date with no «م»
     ("new Intl.DateTimeFormat(document.documentElement.lang === 'en' ? 'en' : 'ar-SA',\n      {timeZone: CONFIG.timezone, weekday:'long'}).format(now)",
      "EN_DAYS[enDay(now, CONFIG.timezone).wd]", 1),
-    ("}).format(now) + (document.documentElement.lang === 'en' ? '' : ' م'));", "}).format(now));", 1),
+    ("}).format(now) + (document.documentElement.lang === 'en' ? '' : ' \\u0645'));   // « م»", "}).format(now));", 1),
     ("if(nat) setText(nl, nat.name + ' ' + ar(nat.n) + nat.unit);", "if(nat) setText(nl, nat.name + ' · ' + ar(nat.n) + ' years');", 1),
     # one day, 2 days; «2 hours, 15 min» (the parts are joined with ' و ' → ', ', which the code also splits on)
     ("""const UNIT = {
@@ -525,8 +525,9 @@ def fill(html, clubs, english_page):
     html = html.replace("__VERSES__", js_json(verses_for_screen()))
     html = html.replace("__HADITH__", js_json(hadith_for_screen()))   # checked by CI
     html = html.replace("__ADHKAR__", js_json(adhkar_for_screen()))   # checked by CI
-    html = html.replace("__HADITH_SHORT__", js_json(hadith_short_index()))   # Bugami/AB_myTV: places in HADITH
-    html = html.replace("__DHIKR__", (ROOT / "assets/shared/dhikr.json").read_text(encoding="utf-8").strip().replace("</", "<\\/"))
+    # Bugami/AB_myTV: the short sayings (places in HADITH) and the dhikr; the English page keeps the original's cards
+    html = html.replace("__HADITH_SHORT__", "[]" if english_page else js_json(hadith_short_index()))
+    html = html.replace("__DHIKR__", "[]" if english_page else (ROOT / "assets/shared/dhikr.json").read_text(encoding="utf-8").strip().replace("</", "<\\/"))
     html = html.replace("__WISDOM__", js_json(json.loads((ROOT / "assets/shared/wisdom.json").read_text(encoding="utf-8"))))
     return html
 

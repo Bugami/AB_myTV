@@ -1217,7 +1217,7 @@ function tickDates(){
   try{
     setText(document.getElementById('greg'), gregFmt({
       timeZone: CONFIG.timezone, day:'numeric', month:'long', year:'numeric'
-    }).format(now) + (document.documentElement.lang === 'en' ? '' : ' م'));
+    }).format(now) + (document.documentElement.lang === 'en' ? '' : ' \u0645'));   // « م»
   }catch(e){}
 }
 
@@ -3610,7 +3610,7 @@ function quotePair(card){
   if(HADITH_SHORT.length){
     const h = pickShort(HADITH_SHORT, n, x => x.t.length, card);
     if(rows.length) rows.push(`<li class="hd2">${CONFIG.verseMin ? 'حديث شريف' : 'حديث اليوم'}</li>`);
-    rows.push(`<li class="quote hadith pair">${saw('قال رسول الله ﷺ')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
+    rows.push(`<li class="quote hadith pair">قال رسول الله ${saw('\uFDFA')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
   }
   return {title: VERSES_SHORT.length ? (CONFIG.verseMin ? 'آية كريمة' : 'آية اليوم') : (CONFIG.verseMin ? 'حديث شريف' : 'حديث اليوم'), rows};
 }
@@ -4343,7 +4343,7 @@ function fbQuotesHtml(){
   }
   if(HADITH_SHORT.length){
     const h = HADITH_SHORT[(n * 7) % HADITH_SHORT.length];
-    out.push(`<div class="fq"><span class="fqw">قال رسول الله <span class="saw">ﷺ</span></span><span class="fqt">«${esc(h.t)}»</span><span class="fqs">${esc(h.s)}</span></div>`);
+    out.push(`<div class="fq"><span class="fqw">قال رسول الله <span class="saw">\uFDFA</span></span><span class="fqt">«${esc(h.t)}»</span><span class="fqs">${esc(h.s)}</span></div>`);
   }
   return out.length ? `<div class="fqs2">${out.join('')}</div>` : '<div class="fnone">—</div>';
 }

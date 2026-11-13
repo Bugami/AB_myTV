@@ -1742,36 +1742,7 @@ function tickOccasion(){
     + (o.note ? '<div class="note">' + esc(o.note) + '</div>' : ''));
 }
 
-const DHIKR = [
- {
-  "text": "سُبْحَانَ اللَّهِ الْعَظِيمِ، سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-  "source": "صحيح البخاري · ٦٤٠٦"
- },
- {
-  "text": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-  "source": "صحيح البخاري · ٦٤٠٥"
- },
- {
-  "text": "لاَ حَوْلَ وَلاَ قُوَّةَ إِلاَّ بِاللَّهِ",
-  "source": "صحيح البخاري · ٦٣٨٤"
- },
- {
-  "text": "سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلاَ إِلَهَ إِلاَّ اللَّهُ وَاللَّهُ أَكْبَرُ",
-  "source": "صحيح مسلم · ٢١٣٧"
- },
- {
-  "text": "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
-  "source": "صحيح البخاري · ٦٣٠٧"
- },
- {
-  "text": "لاَ إِلَهَ إِلاَّ اللَّهُ، وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهْوَ عَلَى كُلِّ شَىْءٍ قَدِيرٌ",
-  "source": "صحيح البخاري · ٦٤٠٣"
- },
- {
-  "text": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
-  "source": "صحيح البخاري · ٤٥٦٣"
- }
-];   // Bugami/AB_myTV: assets/shared/dhikr.json, cut from al-Bukhari and Muslim
+const DHIKR = [];   // Bugami/AB_myTV: assets/shared/dhikr.json, cut from al-Bukhari and Muslim
 const TEAM_AR = {};   // assets/shared/teams-ar.json
 // match "Al-Adalah", "Al Adalah", "Al-Adalah FC" and "AL ADALAH" to the same entry, and "Atlético" to "Atletico"
 // (the same key as team_key() in .github/tools/team_ids.py and Arabic.key(); tests/team_ids_test.py compares them)
@@ -3605,7 +3576,7 @@ function pickShort(list, at, len, card){
 const quoteTurn = () => CONFIG.verseMin ? Math.floor(Date.now() / (CONFIG.verseMin * 60000)) : riyadhDayNumber();
 // Bugami/AB_myTV: «الآية والحديث» both (the default) is the verse of the day and, under it, the hadith of the day: short verses
 // (VERSE_PAIR_WORDS) and short sayings of the Prophet from al-Bukhari and Muslim (hadith_short() in src/build.py)
-const HADITH_SHORT = [6,7,10,12,13,14,18,19,20,26,27,32,33,34,35,37,38,42,43,46,49,50,53,57,58,59,61,62,63,70,75,78,80,87,89,119,120,124,125,128,131,136,138,141,145,146,147,153,154,155,165,168,171,185,186,187,188,192,201,202,203,204,205,210,211,232,237,241,248,281,299,302,317,330,362,400,430,447,457,490,492].map(i => HADITH[i]).filter(h => h && h.parts.some(p => p[0] === 'q')).map(h => ({
+const HADITH_SHORT = [].map(i => HADITH[i]).filter(h => h && h.parts.some(p => p[0] === 'q')).map(h => ({
   t: h.parts.find(p => p[0] === 'q')[1].split(/\s+/).join(' ').replace(/^[\s،,.]+|[\s،,.]+$/g, ''), s: h.source}));
 const VERSE_PAIR_WORDS = 20;
 const VERSES_SHORT = VERSES.filter(v => v.text.split(/\s+/).length <= VERSE_PAIR_WORDS);
@@ -3619,7 +3590,7 @@ function quotePair(card){
   if(HADITH_SHORT.length){
     const h = pickShort(HADITH_SHORT, n, x => x.t.length, card);
     if(rows.length) rows.push(`<li class="hd2">${CONFIG.verseMin ? 'A hadith' : 'Hadith of the day'}</li>`);
-    rows.push(`<li class="quote hadith pair">${saw('The Prophet ﷺ said')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
+    rows.push(`<li class="quote hadith pair">قال رسول الله ${saw('\uFDFA')}: «${esc(h.t)}»</li>`, `<li class="src">${esc(h.s)}</li>`);
   }
   return {title: VERSES_SHORT.length ? (CONFIG.verseMin ? 'A verse' : 'Verse of the day') : (CONFIG.verseMin ? 'A hadith' : 'Hadith of the day'), rows};
 }
@@ -4352,7 +4323,7 @@ function fbQuotesHtml(){
   }
   if(HADITH_SHORT.length){
     const h = HADITH_SHORT[(n * 7) % HADITH_SHORT.length];
-    out.push(`<div class="fq"><span class="fqw">The Prophet said <span class="saw">ﷺ</span></span><span class="fqt">«${esc(h.t)}»</span><span class="fqs">${esc(h.s)}</span></div>`);
+    out.push(`<div class="fq"><span class="fqw">The Prophet said <span class="saw">\uFDFA</span></span><span class="fqt">«${esc(h.t)}»</span><span class="fqs">${esc(h.s)}</span></div>`);
   }
   return out.length ? `<div class="fqs2">${out.join('')}</div>` : '<div class="fnone">—</div>';
 }
