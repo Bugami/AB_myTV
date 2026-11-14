@@ -3,17 +3,47 @@ name: Build APKs
 on:
   push:
     branches: [master, next]   # next: a test build in apk-next, before anything reaches apk-latest
-    paths: ['src/**', 'assets/**', 'android/**', '.github/workflows/android.yml']
+    paths: ['src/**', 'assets/**', 'android/**', 'VERSION', '.github/workflows/android.yml']
+    # a release whose last commit touches none of these builds nothing (4.1's first try): its merge then needs a change here or in VERSION
+    # 4.2 too: a fix after the release merge that touches only .github/tools (the cities generator) builds nothing, and its own build is this line, and so is the veil test's CI tolerance after it
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # master publishes to apk-latest, which every installed TV updates from: the same checks as checks.yml must pass first.
+  # next builds without waiting (apk-next is a test build); a skipped checks job counts as passed there.
+  checks:
+    if: github.ref_name == 'master'
+    uses: ./.github/workflows/checks.yml
+    secrets: inherit
+
   apk:
-    runs-on: ubuntu-latest
+    needs: checks
+    if: ${{ !cancelled() && (needs.checks.result == 'success' || needs.checks.result == 'skipped') }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      # Thmanyah's licence allows its files only inside a built product, never hosted: this repository keeps them
+      # encrypted (.github/signing/fonts.tar.enc, the same password as the signing key) and they are opened only here
+      - name: Private fonts
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p .fonts-private android/launcher/src/main/assets/fonts
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .github/signing/fonts.tar.enc -pass env:KEYSTORE_PASSWORD | tar x -C .fonts-private
+          cp .fonts-private/web/*.woff2 assets/fonts/
+          cp .fonts-private/android/*.otf android/launcher/src/main/assets/fonts/
+          rm -rf .fonts-private
+
+      # the name people read (VERSION at the repository root, «4.0»): the release names and bodies use it; the apps read the same file in Gradle
+      - name: Version
+        id: ver
+        run: |
+          name=$(tr -d '[:space:]' < VERSION)
+          echo "$name" | grep -Eq '^[0-9]+\.[0-9]+$' || { echo "::error::VERSION must be like 4.0 (major.minor)"; exit 1; }
+          echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: Build the page
         run: python3 src/build.py
@@ -27,9 +57,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # the signing key (made once with .github/tools/make_signing_key.py): from the ANDROID_KEYSTORE_B64 secret, or
-      # else the password-encrypted copy in .github/signing/release.p12. Either way the password is only in the
-      # ANDROID_KEYSTORE_PASSWORD secret, so the file alone can't sign anything.
+      # the signing key (made once with .github/tools/make_signing_key.py): from the ANDROID_KEYSTORE_B64 secret, or else the
+      # password-encrypted copy in .github/signing/release.p12. Either way the password is only in the ANDROID_KEYSTORE_PASSWORD
+      # secret, so the file alone can't sign anything.
       - name: Signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -40,10 +70,8 @@ jobs:
           fi
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
-          elif [ -f .github/signing/release.p12 ]; then
-            cp .github/signing/release.p12 "$RUNNER_TEMP/release.p12"
           else
-            echo "::error::No signing key: add the ANDROID_KEYSTORE_B64 secret or .github/signing/release.p12"; exit 1
+            cp .github/signing/release.p12 "$RUNNER_TEMP/release.p12"
           fi
           echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
@@ -51,12 +79,14 @@ jobs:
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           URTV_BRANCH: ${{ github.ref_name }}   # the screensaver fetches its page from the branch it was built from
+          URTV_PIN_RECOVERY: ${{ secrets.PIN_RECOVERY_RECORD }}   # the PIN recovery code's salted record, never the code; unset = none (AGENTS.md)
         run: gradle -p android assembleRelease --no-daemon
 
       - name: Rename
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk urtv-screensaver.apk
           cp android/launcher/build/outputs/apk/release/launcher-release.apk urtv-home.apk
+          echo "3.${{ github.run_number }}" > version.txt   # EXACTLY "3.<run>": every app that ever shipped (3.142 and after) reads the newest build from here, whatever the apps are called now; /releases/latest ends in apk-latest, not in a number
 
       # apksigner, not keytool: the home APK has no v1 (JAR) signature, so keytool sees no signer in it
       - name: Which key signed them
@@ -80,35 +110,41 @@ jobs:
         with:
           tag_name: apk-latest
           name: Latest APKs
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
+          body: "Both apps at version ${{ steps.ver.outputs.name }} (build ${{ github.run_number }}), built from ${{ github.sha }}"
+          fail_on_unmatched_files: true   # a name that matches nothing (a typo) must stop the publish, not publish without it
           files: |
             urtv-screensaver.apk
             urtv-home.apk
+            version.txt
           make_latest: true
 
-      # and every build kept under its own number, the apps' version: APK_TAG=v3.N optimize/install.sh all
+      # and every build kept under its own tag (v4.0.N: the version and the build, only in the URL; the release is titled «UrTV 4.0», the build is in the body): APK_TAG=v4.0.N optimize/install.sh all (the older ones are v3.N)
       - name: Publish to the numbered release
         if: github.ref_name == 'master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v3.${{ github.run_number }}
-          name: UrTV 3.${{ github.run_number }}
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
+          tag_name: v${{ steps.ver.outputs.name }}.${{ github.run_number }}
+          name: UrTV ${{ steps.ver.outputs.name }}
+          body: "Both apps at version ${{ steps.ver.outputs.name }} (build ${{ github.run_number }}), built from ${{ github.sha }}"
+          fail_on_unmatched_files: true   # a name that matches nothing (a typo) must stop the publish, not publish without it
           files: |
             urtv-screensaver.apk
             urtv-home.apk
           make_latest: false
 
       # next: one test release, replaced by each build; install with APK_TAG=apk-next optimize/install.sh all
+      # version.txt is what «تحديث تلفزيوني» reads on the test channel (optimize/saver.sh updatechannel next)
       - name: Publish to the apk-next test release
         if: github.ref_name == 'next'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-next
           name: Test build from next
-          body: "Both apps at version 3.${{ github.run_number }}, built from next at ${{ github.sha }}. For testing only."
+          body: "Both apps at version ${{ steps.ver.outputs.name }} (build ${{ github.run_number }}), built from next at ${{ github.sha }}. For testing only."
+          fail_on_unmatched_files: true   # a name that matches nothing (a typo) must stop the publish, not publish without it
           files: |
             urtv-screensaver.apk
             urtv-home.apk
+            version.txt
           prerelease: true
           make_latest: false

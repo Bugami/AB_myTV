@@ -1,178 +1,91 @@
 package sa.urtv.home;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.SharedPreferences;
-import android.database.Cursor;
+import android.content.Context;
 import android.net.Uri;
-import android.view.View;
-import android.view.ViewGroup;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Collections;
+import java.io.OutputStream;
 
 /**
- * The home screen's clock, dates, weather, prayer times and a hadith: dist/home.html in a transparent
- * full-screen WebView over the photos and behind the buttons and the favourites, which stay native and keep the remote's focus.
- * The page ships in the APK; every 6 hours the newest one is fetched from the repository, so the design can
- * change without a new APK. City and coordinates come from the screensaver's settings (ConfigProvider).
+ * Which copy of the page the home card opens. The launcher carries the page of its own build (assets/web), and only an app update ever
+ * changed it, while the screensaver downloads the newest page every few hours. So a fix to the page (the markets' requests among them)
+ * reached the screensaver and never the home: a stocks card on the home stayed at its last good prices for good. Now the home asks the
+ * screensaver for its page (ConfigProvider .../page/tv.html, given only when it is newer than the screensaver's own and its automatic
+ * update is on), keeps a copy named by its build stamp, and opens it when its stamp is newer than the launcher's own page; otherwise, and
+ * on any failure, its own page exactly as before.
  */
 final class HomePage {
-    static final String URL_PAGE = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/dist/home.html";
-    private static final String FONTS = "https://raw.githubusercontent.com/Bugami/AB_myTV/master/assets/fonts/";
-    private static final Uri CONFIG = Uri.parse("content://sa.urtv.screensaver.config");
-    private static final long INTERVAL_MS = 6L * 3600 * 1000;
+    private static final String PAGE = "content://sa.urtv.screensaver.config/page/";
 
-    private final Activity activity;
-    private WebView web;
-    private String loaded;
+    private HomePage() {}
 
-    HomePage(Activity activity) { this.activity = activity; }
-
-    /** The WebView, or null when this TV has none (then the launcher shows its own clock). */
-    @SuppressLint("SetJavaScriptEnabled")
-    @SuppressWarnings("deprecation")
-    View create() {
+    /** The url to open: {@code url} (which starts with one of HomeCardChoice's bases) on the freshest page this TV has. */
+    static String fresh(Context c, String url) {
+        if (url == null) return null;
+        String base = url.startsWith(HomeCardChoice.BASE_EN) ? HomeCardChoice.BASE_EN : url.startsWith(HomeCardChoice.BASE) ? HomeCardChoice.BASE : null;
+        if (base == null) return url;
+        String name = base == HomeCardChoice.BASE_EN ? "tv-en.html" : "tv.html";
         try {
-            web = new WebView(activity);
+            File copy = copy(c, name);
+            if (copy == null) return url;
+            return Uri.fromFile(copy) + "#" + url.substring(base.length());
         } catch (RuntimeException e) {
-            web = null;
-            return null;
+            return url;
         }
-        web.setBackgroundColor(android.graphics.Color.TRANSPARENT);   // the photos show through
-        web.setFocusable(false);
-        web.setFocusableInTouchMode(false);
-        web.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        web.setVerticalScrollBarEnabled(false);
-        web.setHorizontalScrollBarEnabled(false);
-        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        web.setWebViewClient(new WebViewClient() {
-            // the page asks GitHub for its fonts; answer from the APK
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
-                String s = r.getUrl().toString();
-                if (s.startsWith(FONTS)) {
-                    String name = s.substring(FONTS.length());
-                    if (name.matches("[A-Za-z0-9_-]+\\.woff2")) {
-                        try {
-                            return new WebResourceResponse("font/woff2", null, 200, "OK",
-                                Collections.singletonMap("Access-Control-Allow-Origin", "*"),
-                                activity.getAssets().open("fonts/" + name));
-                        } catch (java.io.IOException ignored) { }
-                    }
-                }
-                return super.shouldInterceptRequest(v, r);
+    }
+
+    /** Our copy of the screensaver's page when it is newer than ours, made or brought up to date now; null for none. */
+    private static File copy(Context c, String name) {
+        String own;
+        try { own = PageStamp.read(c.getAssets().open("web/" + name)); } catch (Exception e) { own = ""; }
+        if (!providerIsOurs(c)) return null;   // S1: a page is taken only from the screensaver app that carries our signature, never from another app that claimed the authority
+        Uri uri = Uri.parse(PAGE + name);
+        String theirs;
+        try { theirs = PageStamp.read(c.getContentResolver().openInputStream(uri)); }
+        catch (Exception e) { theirs = ""; }   // the screensaver is missing, older, or has nothing newer: our own page
+        File dir = new File(c.getFilesDir(), "web");
+        String prefix = name.replace(".html", "") + "_";   // tv_STAMP.html, tv-en_STAMP.html: neither prefix is the start of the other
+        if (!PageStamp.newer(theirs, own)) { clean(dir, prefix, null); return null; }
+        File want = new File(dir, prefix + theirs + ".html");
+        if (!want.isFile() || !theirs.equals(fileStamp(want))) {
+            if (!dir.isDirectory() && !dir.mkdirs()) return null;
+            File tmp = new File(dir, prefix + "tmp");
+            try (InputStream in = c.getContentResolver().openInputStream(uri); OutputStream out = new FileOutputStream(tmp)) {
+                if (in == null) return null;
+                byte[] buf = new byte[16384];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            } catch (Exception e) {
+                tmp.delete();
+                return null;
             }
-        });
-        WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setAllowFileAccess(true);
-        s.setAllowFileAccessFromFileURLs(true);
-        s.setAllowUniversalAccessFromFileURLs(true);
-        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        s.setMediaPlaybackRequiresUserGesture(true);
-        load(false);
-        return web;
-    }
-
-    /** onResume: timers back on, the current settings, and a look for a newer page. */
-    void resume() {
-        if (web == null) return;
-        web.onResume();
-        web.resumeTimers();
-        load(false);
-        new Thread(() -> { if (checkUpdate()) activity.runOnUiThread(() -> load(true)); }).start();
-    }
-
-    /** onPause: no timers or network while an app is in front. */
-    void pause() {
-        if (web != null) { web.onPause(); web.pauseTimers(); }
-    }
-
-    void destroy() {
-        if (web == null) return;
-        ((ViewGroup) web.getParent()).removeView(web);
-        web.destroy();
-        web = null;
-    }
-
-    private File pageFile() { return new File(activity.getFilesDir(), "web/home.html"); }
-
-    private void load(boolean changed) {
-        if (web == null || activity.isDestroyed()) return;
-        File f = pageFile();
-        String base = f.isFile() ? Uri.fromFile(f).toString() : "file:///android_asset/web/home.html";
-        String url = base + "#" + fragment();
-        if (url.equals(loaded)) {
-            if (changed) web.reload();   // same address, new file on disk
-            return;
+            if (!theirs.equals(fileStamp(tmp)) || !tmp.renameTo(want)) { tmp.delete(); return null; }   // changed while read: next time
         }
-        loaded = url;
-        web.loadUrl(url);   // a new fragment alone reloads too: the page listens for hashchange
+        clean(dir, prefix, want);
+        return want;
     }
 
-    /** city, lat, lon and tz from the screensaver's settings; the page has Riyadh's when it is missing. */
-    private String fragment() {
-        try (Cursor c = activity.getContentResolver().query(CONFIG, null, null, null, null)) {
-            if (c == null || !c.moveToFirst() || c.getString(0) == null) return "";
-            return c.getString(0);
-        } catch (RuntimeException e) {
-            return "";
-        }
-    }
-
-    /** Off the main thread. True when a newer, complete page was saved. */
-    private synchronized boolean checkUpdate() {
-        SharedPreferences sp = Dock.prefs(activity);
-        long now = System.currentTimeMillis();
-        if (now - sp.getLong("homePageCheck", 0) < INTERVAL_MS) return false;
-        File out = pageFile();
-        HttpURLConnection con = null;
+    /** the app that answers sa.urtv.screensaver.config is sa.urtv.screensaver and is signed with the key this home is signed with */
+    static boolean providerIsOurs(Context c) {
         try {
-            con = (HttpURLConnection) new URL(URL_PAGE).openConnection();
-            con.setConnectTimeout(15000);
-            con.setReadTimeout(30000);
-            String etag = sp.getString("homePageEtag", null);
-            if (etag != null && out.isFile()) con.setRequestProperty("If-None-Match", etag);
-            int code = con.getResponseCode();
-            sp.edit().putLong("homePageCheck", now).apply();
-            if (code != HttpURLConnection.HTTP_OK) return false;
-            byte[] body = readAll(con.getInputStream());
-            String text = new String(body, "UTF-8");
-            // never swap in a truncated or wrong file
-            if (body.length < 20_000 || !text.contains("<html") || !text.contains("</html>") || !text.contains("id=\"hrow\"")) return false;
-            File dir = out.getParentFile();
-            if (!dir.isDirectory() && !dir.mkdirs()) return false;
-            File tmp = new File(dir, "home.tmp");
-            try (FileOutputStream fo = new FileOutputStream(tmp)) { fo.write(body); }
-            if (!tmp.renameTo(out)) return false;
-            sp.edit().putString("homePageEtag", con.getHeaderField("ETag")).apply();
-            return true;
-        } catch (Exception e) {
+            android.content.pm.ProviderInfo pi = c.getPackageManager().resolveContentProvider("sa.urtv.screensaver.config", 0);
+            return pi != null && "sa.urtv.screensaver".equals(pi.packageName)
+                    && c.getPackageManager().checkSignatures(c.getPackageName(), pi.packageName) == android.content.pm.PackageManager.SIGNATURE_MATCH;
+        } catch (RuntimeException e) {
             return false;
-        } finally {
-            if (con != null) con.disconnect();
         }
     }
 
-    private static byte[] readAll(InputStream in) throws java.io.IOException {
-        try (InputStream i = in) {
-            ByteArrayOutputStream b = new ByteArrayOutputStream();
-            byte[] buf = new byte[16384];
-            int n;
-            while ((n = i.read(buf)) > 0) b.write(buf, 0, n);
-            return b.toByteArray();
-        }
+    private static String fileStamp(File f) {
+        try { return PageStamp.read(new java.io.FileInputStream(f)); } catch (Exception e) { return ""; }
+    }
+
+    /** Older copies go (one page is about 0.7 MB). */
+    private static void clean(File dir, String prefix, File keep) {
+        File[] all = dir.listFiles();
+        if (all == null) return;
+        for (File f : all) if (f.getName().startsWith(prefix) && !f.equals(keep)) f.delete();
     }
 }

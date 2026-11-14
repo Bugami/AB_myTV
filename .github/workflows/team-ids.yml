@@ -8,6 +8,9 @@ name: Clubs and their ids
 # clubs: that run checks every team again; a push checks only new and renamed ones (.github/tools/teams-cache.json).
 # The data is pushed even when a check fails, and the job then goes red, naming the league.
 # One data branch per source branch (data-team-ids-master, data-team-ids-next), so runs on both never overwrite each other.
+# Teams of other sports (NBA, NFL, ...) are leagues of Prefs.LEAGUES like any other. One more part, "Events", finds the
+# Formula 1, UFC, boxing and tennis leagues by name and writes teams/events.json (assets/shared/events.json) and,
+# in report.json, what each answered and whether TheSportsDB has a Saudi basketball league.
 on:
   workflow_dispatch:
     inputs:
@@ -39,6 +42,7 @@ env:   # the monthly run checks everything again; a push checks only new and ren
 
 jobs:
   plan:   # the parts, read from Prefs.LEAGUES: the workflow never lists the leagues itself
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
     runs-on: ubuntu-latest
     outputs:
       parts: ${{ steps.plan.outputs.parts }}
@@ -48,6 +52,7 @@ jobs:
         run: echo "parts=$(python3 .github/tools/team_ids.py plan)" >> "$GITHUB_OUTPUT"
 
   collect:
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -68,7 +73,7 @@ jobs:
 
   merge:
     needs: collect
-    if: always() && needs.collect.result != 'cancelled'
+    if: github.repository == 'tshi-dev/UrTV' && (always() && needs.collect.result != 'cancelled')   # Bugami/AB_myTV: skipped in this copy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -1,0 +1,29 @@
+name: League probe
+
+# 4.3: TheSportsDB's names and ids of the UEFA Champions League, the AFC Champions League (Elite) and the Iraqi league, read before they go
+# into Prefs.LEAGUES (.github/tools/league_probe.py). The report goes to the data-league-probe branch. Nothing else is changed.
+on:
+  workflow_dispatch:   # by hand, when a competition is to be added (4.3 used it once)
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    if: github.repository == 'tshi-dev/UrTV'   # Bugami/AB_myTV: the original's data jobs, skipped in this copy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -u .github/tools/league_probe.py
+      - name: Push to data-league-probe
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan data-league-probe
+          git rm -rfq --cached .
+          [ -d probe-leagues ] || exit 0
+          git add -f probe-leagues
+          git commit -qm "League probe"
+          git push -f origin data-league-probe

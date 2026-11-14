@@ -14,7 +14,7 @@ One grid with three rows — `grid-template-rows: auto 1fr auto`, stage padding 
 
 **Top row — two ends, nothing in between:**
 - Left: weather and markets set as type, mirroring the date block on the right — no boxes, no pills.
-  - Big line (same size as the Hijri date): the temperature `٣٤°` in the display font, then a short Arabic condition word (`صافي`, `غائم جزئياً`…; `غبار` in gold when PM10 is high).
+  - Big line (same size as the Hijri date): the temperature `٣٤°` in the display font, then a short Arabic condition word (`صافي`, `غائم جزئياً`…; `غبار` in gold beside it, not instead, when PM10 is high; a small «Open-Meteo · قبل ١٥ د» line under the city).
   - Small line (same size as the Gregorian date): the city `·` high / low `٣٧° / ٢٤°`.
   - A short gold hairline starting at the left screen edge and fading toward the middle.
   - Under it, one quiet line: `تاسي ▼ · S&P 500 ▲ · بيتكوين ▲` — the name plus ONE direction marker only, `▲` `#79D6A0`, `▼` `#EE8B70`. No price, no percentage. If a quote cannot be loaded, hide its marker (never a dash, never a hard-coded direction).
@@ -52,12 +52,15 @@ All three are built identically — small gold label, big value, small sub-line 
 
 ## Data (all free, no API keys)
 
-- **Prayer times** — Aladhan, method 4 (Umm al-Qura):
+- **Prayer times** — Aladhan, method 4 (Umm al-Qura; 9 Kuwait, 10 Qatar, 16 the UAE, 8 Bahrain and Oman — chosen by the city's zone, see docs/SETTINGS.md):
   `https://api.aladhan.com/v1/timings/DD-MM-YYYY?latitude=24.7136&longitude=46.6753&method=4&timezonestring=Asia/Riyadh`
   Only Fajr, Dhuhr, Asr, Maghrib, Isha. Refresh every 6 hours; recompute the countdown every second.
 - **Ramadan** — never hard-code the date: walk forward day by day with
   `Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{timeZone:'Asia/Riyadh',month:'numeric'})` until the month equals 9.
   Cache the answer per calendar day — that 400-day search must not run once per second.
+  The centre panel follows the next occasion the same way (OCCASIONS in the page: Ramadan, عيد الفطر, عشر ذي الحجة,
+  يوم عرفة, عيد الأضحى, رأس السنة الهجرية, عاشوراء): days left and the expected date («متوقّع»), «اليوم …» or
+  «عيد مبارك» on its days.
 - **Hijri date** — `Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura',{timeZone:'Asia/Riyadh',weekday:'long',day:'numeric',month:'long',year:'numeric'})`, strip a trailing `هـ` before appending your own. The Ramadan panel's year must also be derived, never a literal `١٤٤٨`.
 - **Markets** — Yahoo chart API:
   `https://query1.finance.yahoo.com/v8/finance/chart/{^TASI.SR|^GSPC}?interval=1d&range=5d`
@@ -105,8 +108,8 @@ All three are built identically — small gold label, big value, small sub-line 
 
 - A `DreamService` screensaver (`sa.urtv.screensaver/.ScreenDream`) started by the TV's own idle timer, plus a full-screen preview activity; any remote key closes it.
 - The WebView loads a light build of the page (`dist/tv.html`, 0.3 MB); the app answers its font and photo requests from the APK and a photo cache on disk (`shouldInterceptRequest`), so nothing waits on the network.
-- Settings: 194 Saudi cities and towns in the 13 regions plus an online place search; up to 10 teams (browse leagues or search TheSportsDB; Arabic names from a table, then Wikidata, then transliteration); the card beside the clock; episode filters. They reach the page as a URL fragment (`#city=..&lat=..&lon=..&teams=id,id&panel=..`) — a `?query` on `file://` fails in WebView.
+- Settings: 194 Saudi cities and towns in the 13 regions plus an online place search; up to 20 teams (browse leagues or search TheSportsDB; Arabic names from a table, then Wikidata, then transliteration); the card beside the clock; episode filters. They reach the page as a URL fragment (`#city=..&lat=..&lon=..&teams=id,id&panel=..`) — a `?query` on `file://` fails in WebView.
 - Agents set everything over ADB through shell-only broadcast receivers (`optimize/saver.sh`, `optimize/dock.sh`).
-- Auto-update: every 6 hours the app downloads the page from the repo and uses it if it is newer than the APK.
-- TCL quirk: after a power cut the app may stay frozen until opened once; a boot receiver plus a persisted job bring it back on most sets.
+- Auto-update: when the screensaver starts, and at most every 6 hours, the app downloads the page from the repo (background thread, one at a time) and uses it if it is newer than the APK.
+- TCL quirk: after a power cut the app may stay frozen until opened once; a boot receiver plus a persisted job (which only starts the process, no network) bring it back on most sets.
 - Built by Gradle in GitHub Actions on every push and published to the `apk-latest` release.

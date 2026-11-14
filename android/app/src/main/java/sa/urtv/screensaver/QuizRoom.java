@@ -1,0 +1,351 @@
+package sa.urtv.screensaver;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.function.LongSupplier;
+
+/**
+ * «الأسرع», the rules of one live-quiz game in one object (no Android, no network: tests/quiz_test.py runs it on a plain JVM with a fake clock).
+ * The TV owns everything: the phones only join, send «answer N for question Q» and read their own state. Nothing here is written to disk;
+ * when the game is closed the object is dropped (names, colours, tokens and scores exist only in memory). docs/QUIZ.md, games/live-quiz/SPEC.md.
+ */
+final class QuizRoom {
+    static final int MAX_PLAYERS = 12, NAME_MAX = 12, COLORS = 8;
+    static final int QUESTION_MS = 20000, REVEAL_MS = 8000;   // the reveal 4 s and the top five 4 s (the tester found 3 + 3 short)
+    static final int BASE = 500, BONUS = 500;
+    static final int MISSED_OUT = 3;
+    static final long CONNECTED_MS = 6000, DROP_LOBBY_MS = 10 * 60 * 1000, CODE_LIFE_AFTER_END_MS = 10 * 60 * 1000;
+    static final int JOIN_PER_MIN = 20, WRONG_CODE_LOCK = 5; static final long LOCK_MS = 60000;
+    static final int ANSWER_PER_SEC = 5;
+
+    enum Phase { LOBBY, QUESTION, REVEAL, END, PAUSED, CLOSED }
+
+    /** one question as the room plays it: the options are already in their shown order, `correct` is an index into them */
+    static final class Q {
+        /** the question and its four options in both languages (index 0 Arabic, 1 English), in ONE shown order: `correct` is the same place in both */
+        final String[] texts; final String[][] optsBy; final int correct;
+        final String text; final String[] opts;   // the Arabic ones (the one-language form the older code and the tests use)
+        Q(String text, String[] opts, int correct) { this(new String[] {text, text}, new String[][] {opts, opts}, correct); }
+        Q(String[] texts, String[][] optsBy, int correct) { this.texts = texts; this.optsBy = optsBy; this.correct = correct; this.text = texts[0]; this.opts = optsBy[0]; }
+        String text(boolean en) { return texts[en ? 1 : 0]; }
+        String opt(int i, boolean en) { return optsBy[en ? 1 : 0][i]; }
+    }
+
+    static final class Player {
+        final String token; String name; int color; int score, streak, rank, prevRank, answer = -1, lastPoints, lastDelta;
+        int missed; long answerMs = -1, lastSeen, joinedAt; boolean left, waiting, lastKnown, out; Boolean lastOk; final long order;
+        final ArrayDeque<Long> sent = new ArrayDeque<>();
+        Player(String token, String name, int color, long order) { this.token = token; this.name = name; this.color = color; this.order = order; }
+    }
+
+    static final class Result {
+        final boolean ok; final String error; final Player player;
+        Result(boolean ok, String error, Player player) { this.ok = ok; this.error = error; this.player = player; }
+    }
+
+    private final LongSupplier clock; private final Random rnd;
+    final String code; Phase phase = Phase.LOBBY; int version;
+    private final List<Player> players = new ArrayList<>(); private long nextOrder;
+    private List<Q> questions = new ArrayList<>(); int index = -1; private long qStart, qLeftWhenPaused; private Phase pausedFrom;
+    private long revealAt, endAt, lockedUntil; private int wrongCodes; private final ArrayDeque<Long> joins = new ArrayDeque<>();
+    int[] counts = new int[4]; private String nonce = "";
+
+    QuizRoom(String code, LongSupplier clock, Random rnd) { this.code = code; this.clock = clock; this.rnd = rnd; }
+
+    static String newCode(Random r) { return String.format(java.util.Locale.ROOT, "%04d", r.nextInt(10000)); }
+
+    private static final java.util.Map<String, Long> USED = new java.util.HashMap<>();
+    /** a room code not used in the last hour (the same code is never reused within the hour; with 10,000 codes a draw almost always succeeds at once) */
+    static synchronized String freshCode(Random r, long now) {
+        USED.values().removeIf(t -> now - t > 3600000L);
+        String c = newCode(r);
+        for (int i = 0; i < 300 && USED.containsKey(c); i++) c = newCode(r);
+        USED.put(c, now);
+        return c;
+    }
+
+    // ---------------------------------------------------------------- join
+
+    /** the code is checked here too: 5 wrong codes lock joining for 60 s, 20 join attempts a minute for the room, 12 players, a late join waits for the next question */
+    synchronized Result join(String c, String name, int color, String token) {
+        long now = clock.getAsLong();
+        if (phase == Phase.CLOSED || (phase == Phase.END && now - endAt > CODE_LIFE_AFTER_END_MS)) return new Result(false, "closed", null);
+        if (now < lockedUntil) return new Result(false, "locked", null);
+        while (!joins.isEmpty() && now - joins.peekFirst() > 60000) joins.pollFirst();
+        if (joins.size() >= JOIN_PER_MIN) return new Result(false, "rate", null);
+        joins.addLast(now);
+        if (!code.equals(c)) {
+            if (++wrongCodes >= WRONG_CODE_LOCK) { lockedUntil = now + LOCK_MS; wrongCodes = 0; }
+            return new Result(false, "code", null);
+        }
+        wrongCodes = 0;
+        Player known = byToken(token);
+        if (known != null) {            // the same phone coming back: its name, colour and score are as they were
+            known.left = false; known.out = false; known.missed = 0; known.lastSeen = now; bump();   // the same phone: back in, with its score
+            return new Result(true, null, known);
+        }
+        if (phase == Phase.END) return new Result(false, "closed", null);
+        String n = cleanName(name);
+        if (n.isEmpty()) return new Result(false, "name", null);
+        if (activeCount() >= MAX_PLAYERS) return new Result(false, "full", null);
+        Player p = new Player(newToken(), uniqueName(n), color >= 0 && color < COLORS ? color : (int) (nextOrder % COLORS), nextOrder++);
+        p.lastSeen = now; p.joinedAt = now; p.waiting = phase != Phase.LOBBY;
+        players.add(p); rerank(); bump();
+        return new Result(true, null, p);
+    }
+
+    /** letters, digits and single spaces only, at most 12 characters, nothing that reads as a link or an address */
+    static String cleanName(String raw) {
+        if (raw == null) return "";
+        StringBuilder b = new StringBuilder();
+        int cps = 0;
+        for (int i = 0; i < raw.length() && cps < NAME_MAX; ) {
+            int cp = raw.codePointAt(i); i += Character.charCount(cp);
+            if (Character.isLetterOrDigit(cp)) { b.appendCodePoint(cp); cps++; }
+            else if (cp == ' ' && b.length() > 0 && b.charAt(b.length() - 1) != ' ') { b.append(' '); cps++; }
+        }
+        String s = b.toString().trim();
+        String low = s.toLowerCase(java.util.Locale.ROOT);
+        if (low.contains("http") || low.contains("www")) return "";   // the dots and slashes are already gone: no link can be written
+        return s;
+    }
+
+    /** the person's digits setting (Latin 0-9): the number after a duplicate name is written in it. Set by the TV before anyone joins. */
+    volatile boolean latinDigits;
+    synchronized String nonce() { return nonce; }
+
+    private static final java.util.regex.Pattern MATH = java.util.regex.Pattern.compile("[0-9\\u0660-\\u0669]+(?:[.,\\u066B][0-9\\u0660-\\u0669]+)?(?:\\s*[+\\-\\u2010-\\u2015\\u2212\\u00D7\\u00F7*/=]\\s*[0-9\\u0660-\\u0669]+(?:[.,\\u066B][0-9\\u0660-\\u0669]+)?)+");   // every sign the bank uses: + − (U+2212) × ÷, hyphens and dashes, * / =
+    /** one rule for every expression: the WHOLE expression («250 - 175», «٩١ − ٣٨», «٦ × ٧») inside an Arabic sentence is isolated left to right (U+2066 ... U+2069), operands in the order written */
+    static String isolateMath(String s) {
+        if (s == null || s.isEmpty()) return s;
+        java.util.regex.Matcher m = MATH.matcher(s);
+        StringBuffer b = new StringBuffer();
+        while (m.find()) m.appendReplacement(b, java.util.regex.Matcher.quoteReplacement("\u2066" + m.group() + "\u2069"));
+        return m.appendTail(b).toString();
+    }
+
+    private String uniqueName(String n) {
+        boolean ar = false;
+        for (int i = 0; i < n.length(); i++) if (n.charAt(i) >= 0x0600 && n.charAt(i) <= 0x06FF) ar = true;
+        String cand = n; int k = 1;
+        while (nameTaken(cand)) { k++; cand = n + " " + (ar && !latinDigits ? arabicDigits(k) : String.valueOf(k)); }
+        return cand;
+    }
+    private boolean nameTaken(String n) { for (Player p : players) if (p.name.equals(n)) return true; return false; }
+    static String arabicDigits(int v) { return DigitsText.convert(String.valueOf(v), false); }
+    private String newToken() { StringBuilder b = new StringBuilder(); for (int i = 0; i < 16; i++) b.append("0123456789abcdefghijklmnopqrstuvwxyz".charAt(rnd.nextInt(36))); return b.toString(); }
+
+    /** tokens of players removed from the room (the lobby clean-up, the host's «أزل»): their phone is told «gone», not sent to the join form without a word */
+    private final java.util.LinkedHashSet<String> goneTokens = new java.util.LinkedHashSet<>();
+    private void forget(Player p) { goneTokens.add(p.token); if (goneTokens.size() > 64) goneTokens.remove(goneTokens.iterator().next()); }
+
+    synchronized Player byToken(String t) { if (t == null || t.isEmpty()) return null; for (Player p : players) if (p.token.equals(t)) return p; return null; }
+    synchronized int activeCount() { int n = 0; for (Player p : players) if (!p.left) n++; return n; }
+    synchronized List<Player> players() { return new ArrayList<>(players); }
+
+    // ---------------------------------------------------------------- the game
+
+    synchronized boolean canStart() { return phase == Phase.LOBBY && connectedCount() >= 2; }
+    private int connectedCount() { int n = 0; long now = clock.getAsLong(); for (Player p : players) if (!p.left && now - p.lastSeen <= CONNECTED_MS) n++; return n; }
+
+    /** OK on the TV with at least 2 players in: the first question opens */
+    synchronized boolean start(List<Q> qs) {
+        if (!canStart() || qs == null || qs.isEmpty()) return false;
+        questions = new ArrayList<>(qs); index = -1;
+        for (Player p : players) { p.waiting = false; p.score = 0; p.streak = 0; p.lastOk = null; }
+        rerank(); next(); return true;
+    }
+
+    int total() { return questions.size(); }
+    synchronized Q current() { return index >= 0 && index < questions.size() ? questions.get(index) : null; }
+
+    /** the next question, or the podium after the last one */
+    synchronized void next() {
+        if (phase != Phase.REVEAL && phase != Phase.LOBBY) return;
+        if (index + 1 >= questions.size()) { phase = Phase.END; endAt = clock.getAsLong(); bump(); return; }
+        index++; phase = Phase.QUESTION; qStart = clock.getAsLong(); nonce = Long.toString(rnd.nextLong() >>> 1, 36);   // a new one for every question, never reused (also across «العب مرة أخرى»)
+        for (Player p : players) { p.answer = -1; p.answerMs = -1; p.waiting = false; p.lastOk = null; p.lastPoints = 0; }
+        counts = new int[4]; bump();
+    }
+
+    synchronized long leftMs() {
+        if (phase == Phase.PAUSED) return qLeftWhenPaused;
+        if (phase != Phase.QUESTION) return 0;
+        return Math.max(0, QUESTION_MS - (clock.getAsLong() - qStart));
+    }
+    synchronized long revealLeftMs() { return phase == Phase.REVEAL ? Math.max(0, revealAt + REVEAL_MS - clock.getAsLong()) : 0; }
+
+    /** the question's own nonce (state q.x): an answer must carry it, so a late or retried one from another question, or another game, is refused */
+    synchronized String answer(String token, int q, int a, String x) {
+        if (x == null || !x.equals(nonce) || nonce.isEmpty()) {
+            Player p = byToken(token);
+            return p == null ? "token" : "closed";
+        }
+        return answer(token, q, a);
+    }
+
+    /** a phone's answer: valid only for the open question, once, with an index of 0 to 3, five messages a second at most */
+    synchronized String answer(String token, int q, int a) {
+        Player p = byToken(token);
+        if (p == null) return "token";
+        long now = clock.getAsLong();
+        while (!p.sent.isEmpty() && now - p.sent.peekFirst() > 1000) p.sent.pollFirst();
+        if (p.sent.size() >= ANSWER_PER_SEC) return "rate";
+        p.sent.addLast(now); p.lastSeen = now;
+        if (phase != Phase.QUESTION || q != index || leftMs() <= 0) return "closed";
+        if (a < 0 || a > 3) return "bad";
+        if (p.waiting || p.left) return "closed";
+        if (p.answer >= 0) return "done";
+        p.answer = a; p.answerMs = now - qStart; counts[a]++; bump();
+        if (allAnswered()) reveal();
+        return null;
+    }
+
+    /** a question ends early ONLY when every player in the room has answered. A quiet phone (a tab in the background polls about once a minute, a locked screen) never
+     *  shortens it: the 20 s are the cost. A player leaves only by leaving, or by missing MISSED_OUT whole questions in a row (see reveal). */
+    private boolean allAnswered() {
+        int n = 0;
+        for (Player p : players) if (!p.left && !p.waiting) { n++; if (p.answer < 0) return false; }
+        return n > 0;
+    }
+    /** the last question closed because everyone had answered (not because the 20 s ran out) */
+    boolean endedEarly;
+
+    /** called often by the TV (10 times a second is enough): closes a question at 20 s, ends the reveal at 8 s, drops phones silent for 2 minutes from the lobby */
+    synchronized void tick() {
+        long now = clock.getAsLong();
+        if (phase == Phase.QUESTION && now - qStart >= QUESTION_MS) reveal();
+        else if (phase == Phase.REVEAL && now - revealAt >= REVEAL_MS) next();
+        if (phase == Phase.LOBBY) { for (int i = players.size() - 1; i >= 0; i--) if (now - players.get(i).lastSeen > DROP_LOBBY_MS) { forget(players.get(i)); players.remove(i); bump(); } }
+    }
+
+    /** the question is over: points are worked out here, on the TV */
+    synchronized void reveal() {
+        if (phase != Phase.QUESTION) return;
+        endedEarly = allAnswered();
+        Q q = questions.get(index);
+        for (Player p : players) {
+            if (p.waiting || p.left) { p.lastOk = null; continue; }
+            if (p.answer < 0) {
+                p.lastOk = null; p.streak = 0; p.lastPoints = 0;
+                if (++p.missed >= MISSED_OUT) { p.left = true; p.out = true; }   // three whole questions in a row with no answer: out of the room (his phone is told)
+                continue;
+            }
+            p.missed = 0;
+            boolean ok = p.answer == q.correct;
+            p.lastOk = ok;
+            if (ok) {
+                p.streak++;
+                p.lastPoints = points(p.answerMs, p.streak);
+                p.score += p.lastPoints;
+            } else { p.streak = 0; p.lastPoints = 0; }
+        }
+        for (Player p : players) p.prevRank = p.rank;
+        rerank();
+        for (Player p : players) p.lastDelta = p.prevRank == 0 ? 0 : p.prevRank - p.rank;
+        phase = Phase.REVEAL; revealAt = clock.getAsLong(); bump();
+    }
+
+    /** 500 + 500 x time left / 20 s, plus the streak: +50 from the 3rd right answer in a row, +100 the 4th, +150 from the 5th */
+    static int points(long answerMs, int streak) {
+        long left = Math.max(0, QUESTION_MS - Math.max(0, answerMs));
+        int p = (int) (BASE + Math.round((double) BONUS * left / QUESTION_MS));
+        return p + (streak >= 5 ? 150 : streak == 4 ? 100 : streak == 3 ? 50 : 0);
+    }
+
+    private void rerank() {
+        List<Player> v = new ArrayList<>(players);
+        v.sort(Comparator.<Player>comparingInt(p -> -p.score).thenComparingLong(p -> p.answerMs < 0 ? Long.MAX_VALUE : p.answerMs).thenComparingLong(p -> p.order));
+        int r = 0, shown = 0, prev = Integer.MIN_VALUE;
+        for (Player p : v) { r++; if (p.score != prev) { shown = r; prev = p.score; } p.rank = shown; }   // players on the same score share the place
+    }
+    /** the place among the players still in (a player who left is grey in the list but does not count): never «rank 4 of 3» */
+    synchronized int activeRank(Player p) {
+        int r = 1;
+        for (Player o : players) if (o != p && !o.left && o.rank < p.rank) r++;
+        return r;
+    }
+    synchronized List<Player> ranked() { List<Player> v = new ArrayList<>(players); v.sort(Comparator.<Player>comparingInt(p -> p.rank).thenComparingLong(p -> p.answerMs < 0 ? Long.MAX_VALUE : p.answerMs).thenComparingLong(p -> p.order)); return v; }
+
+    synchronized void skipReveal() { if (phase == Phase.REVEAL) next(); }
+    synchronized void pause() { if (phase == Phase.QUESTION || phase == Phase.REVEAL) { qLeftWhenPaused = leftMs(); pausedFrom = phase; if (phase == Phase.REVEAL) qLeftWhenPaused = revealLeftMs(); phase = Phase.PAUSED; bump(); } }
+    synchronized void resume() {
+        if (phase != Phase.PAUSED) return;
+        long now = clock.getAsLong();
+        if (pausedFrom == Phase.QUESTION) qStart = now - (QUESTION_MS - qLeftWhenPaused); else revealAt = now - (REVEAL_MS - qLeftWhenPaused);
+        phase = pausedFrom; bump();
+    }
+    /** «إنهاء اللعبة» from the pause card: the podium so far */
+    synchronized void finish() { if (phase == Phase.QUESTION || phase == Phase.REVEAL || phase == Phase.PAUSED) { phase = Phase.END; endAt = clock.getAsLong(); bump(); } }
+    /** «العب مرة أخرى»: the same players, scores at 0, back to the lobby */
+    synchronized void playAgain() {
+        if (phase != Phase.END) return;
+        for (Player p : players) { p.score = 0; p.streak = 0; p.waiting = false; p.lastOk = null; p.answer = -1; p.rank = 0; p.prevRank = 0; }
+        rerank(); index = -1; phase = Phase.LOBBY; bump();
+    }
+    synchronized void close() { phase = Phase.CLOSED; players.clear(); questions.clear(); bump(); }
+
+    /** a player leaves: gone at once from the lobby, grey in the list with the points kept during a game */
+    synchronized void leave(String token) {
+        Player p = byToken(token); if (p == null) return;
+        if (phase == Phase.LOBBY) players.remove(p); else p.left = true;
+        bump();
+        if (phase == Phase.QUESTION && allAnswered()) reveal();
+    }
+    /** the host removes a player from the lobby with OK on its tile */
+    synchronized void kick(String token) { Player p = byToken(token); if (p != null) { forget(p); players.remove(p); bump(); } }
+
+    synchronized void touch(String token) { Player p = byToken(token); if (p != null) p.lastSeen = clock.getAsLong(); }
+    synchronized boolean connected(Player p) { return !p.left && clock.getAsLong() - p.lastSeen <= CONNECTED_MS; }
+    synchronized int answeredCount() { int n = 0; for (Player p : players) if (!p.left && !p.waiting && p.answer >= 0) n++; return n; }
+    synchronized int playingCount() { int n = 0; for (Player p : players) if (!p.left && !p.waiting) n++; return n; }
+    private void bump() { version++; }
+    synchronized int version() { return version; }
+
+    // ---------------------------------------------------------------- what a phone may read
+
+    static String esc(String s) {
+        StringBuilder b = new StringBuilder("\"");
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"' || c == '\\') b.append('\\').append(c);
+            else if (c < 0x20) b.append(String.format(java.util.Locale.ROOT, "\\u%04x", (int) c));
+            else b.append(c);
+        }
+        return b.append('"').toString();
+    }
+
+    /** the state a phone reads (GET /api/state): never the right answer before the reveal */
+    synchronized String stateFor(String token) { return stateFor(token, false); }
+
+    /** the phone's own language (its page's, `?l=` of the state poll): the question and the four answers come in that language, the places are the same in both */
+    synchronized String stateFor(String token, boolean en) {
+        Player p = byToken(token);
+        if (phase == Phase.CLOSED) return "{\"ok\":false,\"e\":\"closed\"}";
+        if (p == null) return goneTokens.contains(token) ? "{\"ok\":false,\"e\":\"gone\"}" : "{\"ok\":false,\"e\":\"token\"}";
+        if (p.out) return "{\"ok\":false,\"e\":\"gone\"}";   // missed three questions in a row: «خرجت من الغرفة، ادخل من جديد»
+        p.lastSeen = clock.getAsLong();
+        String ph = phase.name().toLowerCase(java.util.Locale.ROOT);
+        StringBuilder b = new StringBuilder("{\"ok\":true,\"v\":").append(version).append(",\"ph\":\"").append(ph).append("\",\"me\":{\"n\":").append(esc(p.name))
+            .append(",\"k\":").append(p.color).append(",\"s\":").append(p.score).append(",\"r\":").append(activeRank(p)).append(",\"of\":").append(activeCount())
+            .append(",\"left\":").append(p.left).append("},\"pl\":").append(activeCount()).append(",\"dg\":").append(latinDigits ? 1 : 0);   // the TV's digits setting: the phone follows it
+        Q q = current();
+        if ((phase == Phase.QUESTION || phase == Phase.REVEAL || phase == Phase.PAUSED) && q != null) {
+            boolean open = phase == Phase.QUESTION || phase == Phase.PAUSED;
+            b.append(",\"q\":{\"x\":").append(esc(nonce)).append(",\"i\":").append(index).append(",\"n\":").append(total()).append(",\"t\":").append(esc(q.text(en))).append(",\"o\":[");
+            for (int i = 0; i < 4; i++) { if (i > 0) b.append(','); b.append(esc(q.opt(i, en))); }
+            b.append("],\"ms\":").append(open ? leftMs() : 0).append(",\"dur\":").append(QUESTION_MS).append(",\"ans\":").append(answeredCount()).append(",\"of\":").append(playingCount())
+                .append(",\"pick\":").append(p.answer).append(",\"wait\":").append(p.waiting).append('}');
+            if (phase == Phase.REVEAL) {
+                b.append(",\"rv\":{\"c\":").append(q.correct).append(",\"ok\":").append(p.lastOk == null ? "null" : p.lastOk.toString()).append(",\"p\":").append(p.lastPoints)
+                    .append(",\"st\":").append(p.streak).append(",\"r\":").append(activeRank(p)).append(",\"d\":").append(p.lastDelta).append(",\"cnt\":[")
+                    .append(counts[0]).append(',').append(counts[1]).append(',').append(counts[2]).append(',').append(counts[3]).append("]}");
+            }
+        }
+        if (phase == Phase.END) b.append(",\"end\":{\"r\":").append(activeRank(p)).append(",\"of\":").append(activeCount()).append(",\"s\":").append(p.score).append('}');
+        return b.append('}').toString();
+    }
+}
