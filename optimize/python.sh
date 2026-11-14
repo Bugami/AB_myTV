@@ -4,7 +4,10 @@
 # `python`/`python3` can be the Microsoft Store shortcut that does nothing, and right after
 # `winget install Python.Python.3.12` the terminal's PATH doesn't have the new Python yet, so its install
 # folders are tried too, and the `py` launcher last. uv-managed Pythons (macOS/Linux without admin rights) are found too.
-py_ok() { "$@" -c "import sys; sys.exit(not ((3, 10) <= sys.version_info[:2] < (3, 14)))" >/dev/null 2>&1; }
+# Termux and Alpine / iSH take cryptography from the system's own packages (setup.sh: --system-site-packages), built for the
+# system's Python whatever its version, so there any 3.10 or newer will do (Bugami/AB_myTV: Termux is on Python 3.14)
+if [[ "${PREFIX:-}" == */com.termux/* ]] || [ -f /etc/alpine-release ] || [ "${URTV_SYSTEM_SITE:-}" = 1 ]; then PY_MAX=99; else PY_MAX=14; fi
+py_ok() { "$@" -c "import sys; sys.exit(not ((3, 10) <= sys.version_info[:2] < (3, $PY_MAX)))" >/dev/null 2>&1; }
 pick_python() {
   local c la v bad=
   local -a cands=(python3.13 python3.12 /opt/homebrew/bin/python3 /usr/local/bin/python3)
