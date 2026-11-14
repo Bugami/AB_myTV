@@ -16,7 +16,8 @@ const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: p
 async function open(hash, { width = 1920, height = 1080 } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, timezoneId: 'Asia/Riyadh' });
   await ctx.route(/^https?:/, r => {
-    const u = r.request().url();
+    const u = r.request().url(), i = u.indexOf('/master/'), rel = i > 0 ? u.slice(i + 8) : '';
+    if (/^assets\/fonts\//.test(rel)) return r.fulfill({ path: path.join(ROOT, rel), headers: { 'Access-Control-Allow-Origin': '*' } });   // as the app serves them
     if (u.includes('air-quality')) return r.fulfill({ json: { current: { pm10: 20, dust: 5 } }, headers: { 'Access-Control-Allow-Origin': '*' } });
     if (u.includes('open-meteo.com')) return r.fulfill({ json: { current: { temperature_2m: 24.4, apparent_temperature: 23, relative_humidity_2m: 31,
       wind_speed_10m: 9, weather_code: 2, is_day: 1, visibility: 20000 }, daily: { time: ['2026-11-13'], temperature_2m_max: [30], temperature_2m_min: [18], weather_code: [2] } },
@@ -69,11 +70,29 @@ for (const [w, h] of [[1920, 1080], [960, 540]]) {
 }
 
 {
-  const { p, ctx, errors } = await open('city=الرياض&widget=1&football=1&ab=1', { height: 832 });
+  const { p, ctx, errors } = await open('city=الرياض&widget=1&football=1&ab=1', { width: 1920, height: 832 });
   const r = await p.evaluate(() => ({ h3: document.querySelector('#fb-mt h3').textContent.trim(), qs: document.querySelectorAll('#fb-mt-c .fq').length,
     rows: document.querySelectorAll('#fb-mt-c .mrow, #fb-mt-c li').length, fpn: !!document.querySelector('.fpn') }));
   check('the football home: «آية وحديث», a verse and a hadith side by side, no games, no countdown under the prayers',
     r.h3 === 'آية وحديث' && r.qs === 2 && r.rows === 0 && !r.fpn, JSON.stringify(r));
+  const g = await p.evaluate(() => { fbTop(250); fbPills(156);
+    return fbRects().split(';').reduce((a, x) => { const [k, v] = x.split(':'); a[k] = v.split(',').map(Number); return a; }, {}); });
+  // in CSS px of a 1920-wide page: the weather and the prayers from y 200 (under the buttons, beside the clock), the verse and hadith
+  // across the screen under them, all of it above y 760 (the tray of seven tiles starts at 819, the app's name 56 above it)
+  check('the home: the weather and the prayers up at the end side, the verse and hadith wide under them, clear of the tray',
+    g.wx[1] === 200 && g.pr[1] === 200 && g.wx[0] + g.wx[2] <= g.pr[0] && g.pr[0] + g.pr[2] <= 1010
+      && g.mt[1] >= g.pr[1] + g.pr[3] + 16 && g.mt[2] >= 1600 && g.mt[1] + g.mt[3] <= 760, JSON.stringify(g));
+  // every short verse and saying the card can show: at most two lines (a long one a step smaller, fbFitQuotes), its column not overflowing
+  await p.evaluate(() => Promise.all([document.fonts.load('36px UthmanicHafs', VERSES[0].text), document.fonts.load('36px Thmanyah', 'قال')]));
+  const fit = await p.evaluate(() => {
+    const c = document.getElementById('fb-mt-c'), bad = [];
+    const one = (html, what) => { c.innerHTML = `<div class="fqs2">${html}</div>`; fbFitQuotes();
+      c.querySelectorAll('.fq').forEach(q => { const t = q.querySelector('.fqt'); if (t && (textLines(t) > 2 || q.scrollHeight > q.clientHeight + 1)) bad.push(what); }); };
+    VERSES_SHORT.forEach(v => one(`<div class="fq"><span class="fqw">قال الله تعالى</span><span class="fqt"><span class="orn">﴿</span><span class="qt">${v.text}</span><span class="orn">﴾</span></span><span class="fqs">${v.surah}</span></div><div class="fq"></div>`, v.surah + ' ' + v.ayah));
+    HADITH_SHORT.forEach(h => one(`<div class="fq"></div><div class="fq"><span class="fqw">قال رسول الله</span><span class="fqt">«${h.t}»</span><span class="fqs">${h.s}</span></div>`, h.s));
+    fbRender();
+    return bad; });
+  check('every verse and saying whole inside the card, on two lines at most', !fit.length, fit.slice(0, 5).join(' | '));
   check('no errors (the football home)', !errors.length, errors.join('; '));
   await ctx.close();
 }

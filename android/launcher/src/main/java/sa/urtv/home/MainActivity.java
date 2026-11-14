@@ -564,6 +564,11 @@ public class MainActivity extends Activity {
                 if (head == null || head.getHeight() == 0) return bar(192);
                 return head.getTop() + Math.max(clockBlock.getBottom(), pillRow == null ? 0 : pillRow.getBottom()) + bar(24);
             }
+            @Override public int pillsBottom() {   // Bugami/AB_myTV: the weather and the prayers go up beside the clock, under the buttons
+                View head = pillRow == null ? null : (View) pillRow.getParent();
+                if (head == null || head.getHeight() == 0) return bar(132);
+                return head.getTop() + pillRow.getBottom() + bar(24);
+            }
             @Override public boolean light() { return lightNow; }
             @Override public void focus(View target, String which, boolean has) {
                 if (!has) return;

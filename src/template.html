@@ -695,6 +695,22 @@
   .fqs{color:var(--fs);font-size:calc(var(--u)*20*var(--k))}
   #fb .orn,#fb .saw{font-family:'NotoMarks','Noto Naskh Arabic',serif;color:var(--fam)}
   .fqt .qt{font-family:'UthmanicHafs','Thmanyah',serif;font-size:1.25em;line-height:1.7}
+  /* Bugami/AB_myTV (html.ab): the weather and the prayers up beside the clock, under the buttons (--fp, the launcher's fbPills), larger;
+     the verse and the hadith in one wide card under them, as on the first version of this home */
+  html.ab #fb{--k:1.15}
+  html.ab #fb h3{font-size:calc(var(--u)*32)}
+  html.ab #fb-wx,html.ab #fb-pr{top:calc(var(--u)*(var(--fp,156) + 44));height:calc(var(--u)*(524 - 44 - var(--fp,156)));inset-inline-start:auto}
+  html.ab #fb-wx{inset-inline-end:calc(var(--u)*120);width:calc(var(--u)*400)}
+  html.ab #fb-pr{inset-inline-end:calc(var(--u)*544);width:calc(var(--u)*460)}
+  html.ab #fb-mt{inset-inline:calc(var(--u)*120);width:auto;top:calc(var(--u)*544);height:calc(var(--u)*216)}
+  html.ab #fb-mt h3{display:none}
+  html.ab #fb-mt-c{padding:calc(var(--u)*16) calc(var(--u)*24)}
+  html.ab .fqs2{gap:calc(var(--u)*32)}
+  html.ab .fq{gap:calc(var(--u)*6)}
+  html.ab .fqw{font-size:calc(var(--u)*24)}
+  html.ab .fqt{font-size:calc(var(--u)*36);line-height:1.5;-webkit-line-clamp:2}
+  html.ab .fqt .qt{font-size:1.1em;line-height:1.45}
+  html.ab .fqs{font-size:calc(var(--u)*21)}
   /* ---- «المباريات» (#matchpage=1): the light look, sand paper and white cards, a green ring for the focus */
   html.mpage .stage,html.mpage .photo,html.mpage .veil,html.mpage .grain,html.mpage .top-veil,html.mpage .bottom-veil,html.mpage .dimmer,html.mpage #credit,html.mpage .adbar{display:none}
   html.mpage,html.mpage body{background:#F4F2EC}
@@ -4359,6 +4375,20 @@ function fbQuotesHtml(){
   }
   return out.length ? `<div class="fqs2">${out.join('')}</div>` : '<div class="fnone">—</div>';
 }
+// the lines a text takes (its line boxes, the clamped ones too)
+function textLines(e){
+  const rg = document.createRange(); rg.selectNodeContents(e);
+  const bs = [...rg.getClientRects()].filter(x => x.width > 2).map(x => x.bottom).sort((a, b) => a - b);
+  const gap = parseFloat(getComputedStyle(e).fontSize) * .6;
+  return bs.reduce((n, y, i) => n + (i === 0 || y - bs[i - 1] > gap ? 1 : 0), 0);
+}
+// Bugami/AB_myTV: a verse or a saying longer than two lines at the card's size is drawn a step smaller, never cut
+function fbFitQuotes(){
+  document.querySelectorAll('#fb-mt-c .fqt').forEach(e => {
+    e.style.fontSize = '';
+    for(const px of [32, 29, 26]){ if(textLines(e) <= 2) break; e.style.fontSize = `calc(var(--u)*${px})`; }
+  });
+}
 function fbRender(){
   const root = document.getElementById('fb');
   if(!root) return;
@@ -4367,6 +4397,7 @@ function fbRender(){
     setHTML(document.getElementById('fb-pr-c'), fbPrayersHtml());
     setText(document.getElementById('fb-mt-n'), '');
     setHTML(document.getElementById('fb-mt-c'), fbQuotesHtml());
+    fbFitQuotes();
     return;
   }
   const now = Date.now(), list = FB.list = fbHome(now);
@@ -4404,6 +4435,8 @@ function fbLayout(){
 }
 // called by the launcher
 function fbTop(t){ FB.top = Math.max(150, Math.min(320, +t || 216)); fbLayout(); }
+// Bugami/AB_myTV: the bottom of the launcher's buttons (1080p px): the weather and the prayers start under it
+function fbPills(t){ document.documentElement.style.setProperty('--fp', Math.max(60, Math.min(320, +t || 156)) + ''); }
 function fbLight(on){ FB.light = !!on; document.documentElement.classList.toggle('fb-light', FB.light); }
 function fbFocus(which){
   FB.focus = ['wx', 'pr', 'mt'].includes(which) ? which : '';
@@ -4686,6 +4719,7 @@ function bootMatchPage(){
 
 function boot(){
   if(CONFIG.lowram) document.documentElement.classList.add('lowram');
+  if(CONFIG.ab) document.documentElement.classList.add('ab');   // Bugami/AB_myTV: the owner's design, on the cards too
   pruneStorage();
   if(CONFIG.matchPage){ bootMatchPage(); return; }
   if(CONFIG.football){ bootFootball(); return; }
@@ -4698,7 +4732,6 @@ function boot(){
     renderPanel(false, 'matches');
   });
   if(CONFIG.slot === 'none') document.documentElement.classList.add('slot-none');
-  if(CONFIG.ab) document.documentElement.classList.add('ab');
   if(!CONFIG.occasion) document.documentElement.classList.add('occ-off');
   if(!SLOT_MATCHES) document.getElementById('match-row').textContent = '';   // not «لا شيء هذا الأسبوع»: that is the matches slot's
   if(CONFIG.cardStyle !== 'current') document.documentElement.classList.add('cs-' + CONFIG.cardStyle);

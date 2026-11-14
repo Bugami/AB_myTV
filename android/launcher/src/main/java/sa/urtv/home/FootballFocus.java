@@ -20,6 +20,8 @@ final class FootballFocus {
     interface Host {
         /** the bottom of the clock and the buttons, in px from the top of the screen: the widgets' titles start under it */
         int headerBottom();
+        /** Bugami/AB_myTV: the bottom of the buttons' row alone, in px from the top: the weather and the prayers start under it, beside the clock */
+        int pillsBottom();
         /** the home is in its light look now */
         boolean light();
         void focus(View target, String which, boolean has);
@@ -89,6 +91,7 @@ final class FootballFocus {
     void fit() {
         int h = activity.getResources().getDisplayMetrics().heightPixels;
         js("typeof fbTop==='function'?fbTop(" + Math.round(host.headerBottom() * 1080f / Math.max(1, h)) + "):''", null);
+        js("typeof fbPills==='function'?fbPills(" + Math.round(host.pillsBottom() * 1080f / Math.max(1, h)) + "):''", null);   // Bugami/AB_myTV
         light(host.light());
         place();
     }

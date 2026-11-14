@@ -383,7 +383,7 @@ final class Prefs {
     void setMarketsOn(boolean v) { sp.edit().putBoolean("marketsOn", v).apply(); }
 
     String clockSize() {
-        String v = sp.getString("clockSize", "large");
+        String v = sp.getString("clockSize", "small");   // Bugami/AB_myTV: the small clock by default
         for (String[] c : CLOCK_SIZES) if (c[0].equals(v)) return v;
         return "large";
     }
@@ -508,7 +508,7 @@ final class Prefs {
     }
 
     /** The slim bar before the adhan, on the screensaver and on the home screen (default on); sent to the page as #adhanbar=. */
-    boolean adhanBar() { return sp.getBoolean("adhanBar", true); }
+    boolean adhanBar() { return sp.getBoolean("adhanBar", false); }   // Bugami/AB_myTV: off by default (no countdown at the top)
     void setAdhanBar(boolean v) { sp.edit().putBoolean("adhanBar", v).apply(); }
 
     /** From PR #28, each off by default and sent to the page only when on: the sunrise after Fajr in the bottom-right panel (#sunrise=1),
@@ -1039,7 +1039,7 @@ final class Prefs {
     String matchApp() { String v = sp.getString("matchApp", MATCH_AUTO); return matchAppOk(v) ? v : MATCH_AUTO; }
     void setMatchApp(String v) { if (matchAppOk(v)) sp.edit().putString("matchApp", v).apply(); }
 
-    String favBar() { String v = favBarFix(sp.getString("favBar", "5")); return java.util.Arrays.asList(FAV_BARS).contains(v) ? v : "5"; }
+    String favBar() { String v = favBarFix(sp.getString("favBar", "7")); return java.util.Arrays.asList(FAV_BARS).contains(v) ? v : "7"; }   // Bugami/AB_myTV: seven smaller tiles by default
     void setFavBar(String v) { v = favBarFix(v); if (java.util.Arrays.asList(FAV_BARS).contains(v)) sp.edit().putString("favBar", v).apply(); }
     /** the choice as the settings row says it */
     static String favBarLabel(String v) { return "all".equals(v) ? "كل المفضلة" : v; }
